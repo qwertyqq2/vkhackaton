@@ -15,22 +15,23 @@ type File struct {
 	Id []byte
 
 	FilePath string
-	data     string
+	data     []byte
 }
 
-func idFile(data string) string {
-	return crypto.Base64EncodeString(crypto.HashSum(
+func idFile(data string) []byte {
+	return crypto.HashSum(
 		bytes.Join(
 			[][]byte{
 				[]byte(data),
 			},
 			[]byte{},
-		)))
+		))
 }
 
 func NewFile(data string) (*File, error) {
 	id := idFile(data)
-	f, err := os.Create(Path + id)
+	path := Path + crypto.Base64EncodeString(id)
+	f, err := os.Create(path)
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +40,12 @@ func NewFile(data string) (*File, error) {
 		return nil, err
 	}
 	return &File{
-		data:     data,
-		FilePath: Path + id,
-		Id:       crypto.Base64DecodeString(id),
+		data:     []byte(data),
+		FilePath: path,
+		Id:       id,
 	}, nil
 }
 
 func verifyId(f *File) bool {
-	return bytes.Equal(crypto.Base64DecodeString(string(f.Id)), crypto.Base64DecodeString(idFile(f.data)))
+	return bytes.Equal(f.Id, idFile(string(f.data)))
 }
