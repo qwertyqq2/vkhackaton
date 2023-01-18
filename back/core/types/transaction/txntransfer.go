@@ -11,6 +11,7 @@ import (
 )
 
 type TxnTransfer struct {
+	Type      uint   `json:"type"`
 	Rand      []byte `json:"rand"`
 	Sender    string `json:"sender"`
 	Receiver  string `json:"receiver"`
@@ -25,6 +26,7 @@ func NewTxTransfer(sender *user.User, prevHash []byte, receiver *user.Address, v
 	rand := crypto.GenerateRandom()
 	toStorage := uint64(1 * value / 10)
 	tx := &TxnTransfer{
+		Type:      TypeTransferTx,
 		Rand:      rand,
 		Sender:    sender.Public(),
 		Receiver:  receiver.String(),
@@ -43,6 +45,7 @@ func (t *TxnTransfer) hash() []byte {
 	return crypto.HashSum(
 		bytes.Join(
 			[][]byte{
+				crypto.ToBytes(uint64(t.Type)),
 				t.Rand,
 				crypto.Base64DecodeString(t.Sender),
 				crypto.Base64DecodeString(t.Receiver),
@@ -91,10 +94,23 @@ func (t *TxnTransfer) Valid() bool {
 	return true
 }
 
+func (t *TxnTransfer) Hash() []byte {
+	return t.HashTx
+}
+
 func (t *TxnTransfer) SerializeTx() (string, error) {
 	jsonData, err := json.MarshalIndent(*t, "", "\t")
 	if err != nil {
 		return "", err
 	}
 	return string(jsonData), nil
+}
+
+func DeserializeTransferTx(data string) (*TxnTransfer, error) {
+	var tx TxnTransfer
+	err := json.Unmarshal([]byte(data), &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
 }

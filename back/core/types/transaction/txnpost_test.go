@@ -15,7 +15,7 @@ func TestSerializePost(t *testing.T) {
 		t.Fatal(err)
 	}
 	u1 := user.NewUser(pk1)
-	file := files.GenerateFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
+	file := files.NewFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
 	tx, err := NewTxPost(u1, []byte("first"), file)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestVerifyPost(t *testing.T) {
 		t.Fatal(err)
 	}
 	u1 := user.NewUser(pk1)
-	file := files.GenerateFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
+	file := files.NewFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
 	tx, err := NewTxPost(u1, []byte("first"), file)
 	if err != nil {
 		t.Fatal(err)

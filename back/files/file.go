@@ -2,7 +2,7 @@ package files
 
 import (
 	"bytes"
-	"os"
+	"encoding/json"
 
 	"github.com/qwertyqq2/filebc/crypto"
 )
@@ -12,10 +12,8 @@ const (
 )
 
 type File struct {
-	Id []byte
-
-	FilePath string
-	data     []byte
+	Id   []byte `json:"id"`
+	Data []byte `json:"data"`
 }
 
 func idFile(data string) []byte {
@@ -28,26 +26,17 @@ func idFile(data string) []byte {
 		))
 }
 
-func NewFile(data string) (*File, error) {
+func NewFile(data string) *File {
 	id := idFile(data)
-	path := Path + crypto.Base64EncodeString(id)
-	f, err := os.Create(path)
-	if err != nil {
-		return nil, err
-	}
-	_, err = f.Write([]byte(data))
-	if err != nil {
-		return nil, err
-	}
+
 	return &File{
-		data:     []byte(data),
-		FilePath: path,
-		Id:       id,
-	}, nil
+		Data: []byte(data),
+		Id:   id,
+	}
 }
 
 func verifyId(f *File) bool {
-	return bytes.Equal(f.Id, idFile(string(f.data)))
+	return bytes.Equal(f.Id, idFile(string(f.Data)))
 }
 
 func verifySize(f *File, maxSize int) bool {
@@ -67,15 +56,28 @@ func (f *File) Verify(maxSize int) bool {
 	return true
 }
 
-func (f *File) Data() []byte {
-	return f.data
-}
-
 func (f *File) size() int {
-	return len([]rune(string(f.data)))
+	return len([]rune(string(f.Data)))
 }
 
 func (f *File) Diff(maxsize int) int {
 	s := f.size()
 	return int(s * 100 / maxsize)
+}
+
+func (f *File) SerializeFile() (string, error) {
+	jsonData, err := json.MarshalIndent(*f, "", "\t")
+	if err != nil {
+		return "", err
+	}
+	return string(jsonData), nil
+}
+
+func DeserializeFile(fstr string) (*File, error) {
+	var f File
+	err := json.Unmarshal([]byte(fstr), &f)
+	if err != nil {
+		return nil, err
+	}
+	return &f, nil
 }

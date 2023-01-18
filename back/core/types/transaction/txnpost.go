@@ -12,6 +12,7 @@ import (
 )
 
 type TxnPost struct {
+	Type      uint   `json:"type"`
 	Rand      []byte `json:"rand"`
 	Sender    string `json:"sender"`
 	PostId    []byte `json:"postId"`
@@ -29,12 +30,13 @@ func NewTxPost(sender *user.User, prevHash []byte, post *files.File) (*TxnPost, 
 		return nil, ErrIncorrectPost
 	}
 	tx := &TxnPost{
+		Type:      TypePostTx,
 		Rand:      rand,
 		Sender:    sender.Public(),
 		PrevBlock: prevHash,
 		PostId:    post.Id,
 		ToStorage: uint64(toStorage),
-		Data:      post.Data(),
+		Data:      post.Data,
 	}
 	err := tx.Sign(sender)
 	if err != nil {
@@ -47,6 +49,7 @@ func (t *TxnPost) hash() []byte {
 	return crypto.HashSum(
 		bytes.Join(
 			[][]byte{
+				crypto.ToBytes(uint64(t.Type)),
 				t.Rand,
 				crypto.Base64DecodeString(t.Sender),
 				t.PrevBlock,
@@ -94,10 +97,23 @@ func (t *TxnPost) Valid() bool {
 	return true
 }
 
+func (t *TxnPost) Hash() []byte {
+	return t.HashTx
+}
+
 func (t *TxnPost) SerializeTx() (string, error) {
 	jsonData, err := json.MarshalIndent(*t, "", "\t")
 	if err != nil {
 		return "", err
 	}
 	return string(jsonData), nil
+}
+
+func DeserializePostTx(data string) (*TxnPost, error) {
+	var tx TxnPost
+	err := json.Unmarshal([]byte(data), &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
 }

@@ -16,7 +16,7 @@ func CreatePostTx() (string, error) {
 		return "", err
 	}
 	u1 := user.NewUser(pk1)
-	file := files.GenerateFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
+	file := files.NewFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
 	txpost, err := transaction.NewTxPost(u1, []byte("first"), file)
 	if err != nil {
 		return "", err
@@ -59,6 +59,10 @@ func TestDeserializeTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(tx1)
+	s, err := tx1.SerializeTx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(s)
 
 }
