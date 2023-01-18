@@ -13,8 +13,8 @@ type NodeConfig struct {
 }
 
 type Config struct {
-	Me        NodeConfig   `json:"me"`
-	Neigboors []NodeConfig `json:"neigboors"`
+	Me        *NodeConfig   `json:"me"`
+	Neigboors []*NodeConfig `json:"neigboors"`
 }
 
 func read() (*Config, error) {

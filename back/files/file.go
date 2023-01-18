@@ -49,3 +49,33 @@ func NewFile(data string) (*File, error) {
 func verifyId(f *File) bool {
 	return bytes.Equal(f.Id, idFile(string(f.data)))
 }
+
+func verifySize(f *File, maxSize int) bool {
+	if f.size() > maxSize {
+		return false
+	}
+	if f.size() <= 0 {
+		return false
+	}
+	return true
+}
+
+func (f *File) Verify(maxSize int) bool {
+	if !verifyId(f) || !verifySize(f, maxSize) {
+		return false
+	}
+	return true
+}
+
+func (f *File) Data() []byte {
+	return f.data
+}
+
+func (f *File) size() int {
+	return len([]rune(string(f.data)))
+}
+
+func (f *File) Diff(maxsize int) int {
+	s := f.size()
+	return int(s * 100 / maxsize)
+}
