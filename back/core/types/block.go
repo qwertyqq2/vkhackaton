@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
 )
@@ -80,4 +81,16 @@ func (b *Block) hash() values.Bytes {
 
 func (b *Block) verifyHash() bool {
 	return bytes.Equal(b.HashBlock, b.hash())
+}
+
+func (b *Block) verifySnapPrev() (bool, error) {
+	coll, err := files.NewCollector()
+	if err != nil {
+		return false, err
+	}
+	snapPrev, err := coll.State()
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(snapPrev, b.PrevSnap), nil
 }

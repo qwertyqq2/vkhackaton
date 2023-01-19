@@ -1,32 +1,24 @@
 package xorstate
 
 import (
-	"bytes"
-
-	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/values"
 )
 
 type XorState struct {
 	len  int
-	seed []byte
+	seed values.Bytes
 }
 
 func NewXorState(len int) *XorState {
 	seed := make([]byte, len)
-	seed = crypto.HashSum(
-		bytes.Join(
-			[][]byte{
-				[]byte("state"),
-			},
-			[]byte{},
-		))
+	seed = values.HashSum([]byte("state"))
 	return &XorState{
 		len:  len,
 		seed: seed,
 	}
 }
 
-func (s *XorState) Add(state []byte, data []byte) []byte {
+func (s *XorState) Add(state values.Bytes, data values.Bytes) values.Bytes {
 	res := make([]byte, s.len)
 	for i, d := range state {
 		res[i] = d ^ data[i]
@@ -34,7 +26,7 @@ func (s *XorState) Add(state []byte, data []byte) []byte {
 	return res
 }
 
-func (s *XorState) Get(data ...[]byte) []byte {
+func (s *XorState) Get(data ...values.Bytes) values.Bytes {
 	res := s.seed
 	for _, d := range data {
 		res = s.Add(res, d)

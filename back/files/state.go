@@ -1,7 +1,9 @@
 package files
 
-type State interface {
-	Add([]byte, []byte) []byte
+import "github.com/qwertyqq2/filebc/values"
 
-	Get(data ...[]byte) []byte
+type State interface {
+	Add(values.Bytes, values.Bytes) values.Bytes
+
+	Get(data ...values.Bytes) values.Bytes
 }

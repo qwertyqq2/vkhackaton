@@ -32,6 +32,10 @@ func NewLevelDB() (*levelDB, error) {
 		Rand varchar,
 		File text
 	);
+	CREATE TABLE Users (
+		Address varchar,
+		Balance integer
+	);
 	`)
 	if err != nil {
 		return nil, err
@@ -94,5 +98,71 @@ func (l *levelDB) getFiles() ([]string, error) {
 		filesStr = append(filesStr, fs)
 	}
 	return filesStr, nil
+}
 
+type wrapper struct {
+	Addr string `json:"Address"`
+	Bal  int    `json:"Balance"`
+}
+
+func (l *levelDB) newUser(address string) error {
+	_, err := l.db.Exec("INSERT INTO Users (Address, Balance) VALUES ($1, $2);",
+		address,
+		int(0),
+	)
+	return err
+}
+
+func (l *levelDB) existUser(address string) bool {
+	row := l.db.QueryRow("Select Balance From Users Where Address=$1", address)
+	var res interface{}
+	row.Scan(&res)
+	if res == nil {
+		return false
+	}
+	return true
+}
+
+func (l *levelDB) addBalance(address string, delta uint64) error {
+	if l.existUser(address) {
+		_, err := l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
+			int(delta),
+			address,
+		)
+		return err
+	}
+	err := l.newUser(address)
+	if err != nil {
+		return err
+	}
+	_, err = l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
+		int(delta),
+		address,
+	)
+	return err
+}
+
+func (l *levelDB) getBalance(address string) (uint64, error) {
+	row := l.db.QueryRow("Select Balance From Users Where Address=$1", address)
+	var user wrapper
+	err := row.Scan(&user.Bal)
+	if err != nil {
+		return 0, err
+	}
+	return uint64(user.Bal), nil
+}
+
+func (l *levelDB) getUsers() ([]wrapper, error) {
+	rows, err := l.db.Query("Select * from Users")
+	if err != nil {
+		return nil, err
+	}
+	addrs := make([]wrapper, 0)
+	var as wrapper
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&as.Addr, &as.Bal)
+		addrs = append(addrs, as)
+	}
+	return addrs, nil
 }

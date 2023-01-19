@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 
 	mcrypto "github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/values"
 )
 
 type Address struct {
@@ -43,4 +44,8 @@ func ParseAddress(saddr string) *Address {
 	return &Address{
 		pub: pub,
 	}
+}
+
+func (a *Address) Bytes() values.Bytes {
+	return mcrypto.RsaPublicByte(a.pub)
 }
