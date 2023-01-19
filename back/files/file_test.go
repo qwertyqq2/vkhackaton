@@ -13,18 +13,17 @@ func TestCreateDb(t *testing.T) {
 		t.Fatal(err)
 	}
 	f1 := NewFile("Здарова епты бля! \n\n\n я знаю")
-	rand := []byte("qweqweqweqwe")
-	err = l.InsertFile(f1, rand)
+	err = l.insertFile(f1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	f2 := NewFile("Че нада")
-	err = l.InsertFile(f2, rand)
+	err = l.insertFile(f2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	f3 := NewFile("Ниче")
-	err = l.InsertFile(f3, rand)
+	err = l.insertFile(f3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +34,7 @@ func TestGetFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := l.GetFiles()
+	files, err := l.allFiles()
 	if err != nil {
 		t.Fatal(err)
 	}

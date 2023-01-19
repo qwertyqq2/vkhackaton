@@ -6,23 +6,24 @@ import (
 	"fmt"
 
 	"github.com/qwertyqq2/filebc/user"
+	"github.com/qwertyqq2/filebc/values"
 
 	"github.com/qwertyqq2/filebc/crypto"
 )
 
 type TxnTransfer struct {
-	Type      uint   `json:"type"`
-	Rand      []byte `json:"rand"`
-	Sender    string `json:"sender"`
-	Receiver  string `json:"receiver"`
-	Value     uint64 `json:"value"`
-	ToStorage uint64 `json:"toStorage"`
-	HashTx    []byte `json:"hashTx"`
-	SignTx    []byte `json:"sign"`
-	PrevBlock []byte `json:"prevBlock"`
+	Type      uint         `json:"type"`
+	Rand      values.Bytes `json:"rand"`
+	Sender    string       `json:"sender"`
+	Receiver  string       `json:"receiver"`
+	Value     uint64       `json:"value"`
+	ToStorage uint64       `json:"toStorage"`
+	HashTx    values.Bytes `json:"hashTx"`
+	SignTx    values.Bytes `json:"sign"`
+	PrevBlock values.Bytes `json:"prevBlock"`
 }
 
-func NewTxTransfer(sender *user.User, prevHash []byte, receiver *user.Address, value uint64) (*TxnTransfer, error) {
+func NewTxTransfer(sender *user.User, prevHash values.Bytes, receiver *user.Address, value uint64) (*TxnTransfer, error) {
 	rand := crypto.GenerateRandom()
 	toStorage := uint64(1 * value / 10)
 	tx := &TxnTransfer{
@@ -41,20 +42,14 @@ func NewTxTransfer(sender *user.User, prevHash []byte, receiver *user.Address, v
 	return tx, nil
 }
 
-func (t *TxnTransfer) hash() []byte {
-	return crypto.HashSum(
-		bytes.Join(
-			[][]byte{
-				crypto.ToBytes(uint64(t.Type)),
-				t.Rand,
-				crypto.Base64DecodeString(t.Sender),
-				crypto.Base64DecodeString(t.Receiver),
-				crypto.ToBytes(t.Value),
-				crypto.ToBytes(t.ToStorage),
-				t.PrevBlock,
-			},
-			[]byte{},
-		))
+func (t *TxnTransfer) hash() values.Bytes {
+	return values.HashSum(crypto.ToBytes(uint64(t.Type)),
+		t.Rand,
+		crypto.Base64DecodeString(t.Sender),
+		crypto.Base64DecodeString(t.Receiver),
+		crypto.ToBytes(t.Value),
+		crypto.ToBytes(t.ToStorage),
+		t.PrevBlock)
 }
 
 func (t *TxnTransfer) Sign(u *user.User) error {
@@ -94,7 +89,7 @@ func (t *TxnTransfer) Valid() bool {
 	return true
 }
 
-func (t *TxnTransfer) Hash() []byte {
+func (t *TxnTransfer) Hash() values.Bytes {
 	return t.HashTx
 }
 

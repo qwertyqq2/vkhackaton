@@ -7,36 +7,37 @@ import (
 	"github.com/qwertyqq2/filebc/crypto"
 )
 
-const (
-	Path = "../filesRepo/"
-)
-
 type File struct {
 	Id   []byte `json:"id"`
 	Data []byte `json:"data"`
+
+	rand []byte
 }
 
-func idFile(data string) []byte {
+func idFile(data string, rand []byte) []byte {
 	return crypto.HashSum(
 		bytes.Join(
 			[][]byte{
 				[]byte(data),
+				rand,
 			},
 			[]byte{},
 		))
 }
 
 func NewFile(data string) *File {
-	id := idFile(data)
+	rand := crypto.GenerateRandom()
+	id := idFile(data, rand)
 
 	return &File{
 		Data: []byte(data),
 		Id:   id,
+		rand: rand,
 	}
 }
 
 func verifyId(f *File) bool {
-	return bytes.Equal(f.Id, idFile(string(f.Data)))
+	return bytes.Equal(f.Id, idFile(string(f.Data), f.rand))
 }
 
 func verifySize(f *File, maxSize int) bool {

@@ -9,21 +9,22 @@ import (
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/options"
 	"github.com/qwertyqq2/filebc/user"
+	"github.com/qwertyqq2/filebc/values"
 )
 
 type TxnPost struct {
-	Type      uint   `json:"type"`
-	Rand      []byte `json:"rand"`
-	Sender    string `json:"sender"`
-	PostId    []byte `json:"postId"`
-	ToStorage uint64 `json:"toStorage"`
-	HashTx    []byte `json:"hashTx"`
-	SignTx    []byte `json:"signTx"`
-	PrevBlock []byte `json:"prevBlock"`
-	Data      []byte `json:"data"`
+	Type      uint         `json:"type"`
+	Rand      values.Bytes `json:"rand"`
+	Sender    string       `json:"sender"`
+	PostId    values.Bytes `json:"postId"`
+	ToStorage uint64       `json:"toStorage"`
+	HashTx    values.Bytes `json:"hashTx"`
+	SignTx    values.Bytes `json:"signTx"`
+	PrevBlock values.Bytes `json:"prevBlock"`
+	Data      values.Bytes `json:"data"`
 }
 
-func NewTxPost(sender *user.User, prevHash []byte, post *files.File) (*TxnPost, error) {
+func NewTxPost(sender *user.User, prevHash values.Bytes, post *files.File) (*TxnPost, error) {
 	rand := crypto.GenerateRandom()
 	toStorage := post.Diff(options.MaxsizeFile)
 	if !post.Verify(options.MaxsizeFile) {
@@ -45,19 +46,13 @@ func NewTxPost(sender *user.User, prevHash []byte, post *files.File) (*TxnPost, 
 	return tx, nil
 }
 
-func (t *TxnPost) hash() []byte {
-	return crypto.HashSum(
-		bytes.Join(
-			[][]byte{
-				crypto.ToBytes(uint64(t.Type)),
-				t.Rand,
-				crypto.Base64DecodeString(t.Sender),
-				t.PrevBlock,
-				t.PostId,
-				crypto.ToBytes(t.ToStorage),
-			},
-			[]byte{},
-		))
+func (t *TxnPost) hash() values.Bytes {
+	return values.HashSum(crypto.ToBytes(uint64(t.Type)),
+		t.Rand,
+		crypto.Base64DecodeString(t.Sender),
+		t.PrevBlock,
+		t.PostId,
+		crypto.ToBytes(t.ToStorage))
 }
 
 func (t *TxnPost) Sign(u *user.User) error {
@@ -97,7 +92,7 @@ func (t *TxnPost) Valid() bool {
 	return true
 }
 
-func (t *TxnPost) Hash() []byte {
+func (t *TxnPost) Hash() values.Bytes {
 	return t.HashTx
 }
 

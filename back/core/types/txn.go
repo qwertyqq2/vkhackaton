@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qwertyqq2/filebc/user"
+	"github.com/qwertyqq2/filebc/values"
 
 	"github.com/qwertyqq2/filebc/core/types/transaction"
 )
@@ -14,7 +15,7 @@ type Transaction interface {
 
 	Valid() bool
 
-	Hash() []byte
+	Hash() values.Bytes
 
 	SerializeTx() (string, error)
 }

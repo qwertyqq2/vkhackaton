@@ -7,6 +7,7 @@ import (
 
 	"github.com/qwertyqq2/filebc/crypto"
 	"github.com/qwertyqq2/filebc/user"
+	"github.com/qwertyqq2/filebc/values"
 )
 
 const (
@@ -14,16 +15,16 @@ const (
 )
 
 type Block struct {
-	PrevBlock []byte            `json:"prevBlock"`
-	PrevSnap  []byte            `json:"prevSnap"`
-	HashBlock []byte            `json:"hashBlock"`
-	CurShap   []byte            `json:"curSnap"`
+	PrevBlock values.Bytes      `json:"prevBlock"`
+	PrevSnap  values.Bytes      `json:"prevSnap"`
+	HashBlock values.Bytes      `json:"hashBlock"`
+	CurShap   values.Bytes      `json:"curSnap"`
 	Balances  map[string]uint64 `json:"balances"`
-	Nonce     uint64            `json:"nonce"`
+	Proof     uint64            `json:"nonce"`
 	Time      string            `json:"time"`
 	Miner     string            `json:"miner"`
 	Diff      uint8             `json:"diff"`
-	Sign      []byte            `json:"sign"`
+	Sign      values.Bytes      `json:"sign"`
 
 	transactions []Transaction
 }
@@ -53,20 +54,13 @@ func NewGenesisBLock(creator *user.Address) *Block {
 	return gen
 }
 
-func (b *Block) hash() []byte {
+func (b *Block) hash() values.Bytes {
 	temp := []byte{}
 	for _, tx := range b.transactions {
 		if tx.Hash() == nil {
 			return nil
 		}
-		temp = crypto.HashSum(
-			bytes.Join(
-				[][]byte{
-					temp,
-					tx.Hash(),
-				},
-				[]byte{},
-			))
+		temp = values.HashSum(temp, tx.Hash())
 	}
 	list := []string{}
 	for addr := range b.Balances {
@@ -74,28 +68,14 @@ func (b *Block) hash() []byte {
 	}
 	sort.Strings(list)
 	for _, addr := range list {
-		temp = crypto.HashSum(
-			bytes.Join(
-				[][]byte{
-					temp,
-					[]byte(addr),
-					crypto.ToBytes(b.Balances[addr]),
-				},
-				[]byte{},
-			))
+		temp = values.HashSum(temp, []byte(addr), crypto.ToBytes(b.Balances[addr]))
 	}
-	return crypto.HashSum(
-		bytes.Join(
-			[][]byte{
-				temp,
-				crypto.ToBytes(uint64(b.Diff)),
-				b.PrevBlock,
-				b.PrevSnap,
-				[]byte(b.Miner),
-				[]byte(b.Time),
-			},
-			[]byte{},
-		))
+	return values.HashSum(temp,
+		crypto.ToBytes(uint64(b.Diff)),
+		b.PrevBlock,
+		b.PrevSnap,
+		[]byte(b.Miner),
+		[]byte(b.Time))
 }
 
 func (b *Block) verifyHash() bool {

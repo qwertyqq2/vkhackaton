@@ -12,11 +12,11 @@ const (
 	DbName = "files.db"
 )
 
-type LevelDB struct {
+type levelDB struct {
 	db *sql.DB
 }
 
-func NewLevelDB() (*LevelDB, error) {
+func NewLevelDB() (*levelDB, error) {
 	fileDb, err := os.Create(DbName)
 	if err != nil {
 		return nil, err
@@ -36,27 +36,27 @@ func NewLevelDB() (*LevelDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &LevelDB{db: db}, nil
+	return &levelDB{db: db}, nil
 }
 
-func LoadLevel() (*LevelDB, error) {
+func LoadLevel() (*levelDB, error) {
 	db, err := sql.Open("sqlite3", DbName)
 	if err != nil {
 		return nil, err
 	}
-	return &LevelDB{
+	return &levelDB{
 		db: db,
 	}, nil
 }
 
-func (l *LevelDB) InsertFile(f *File, rand []byte) error {
+func (l *levelDB) insertFile(f *File) error {
 	fstr, err := f.SerializeFile()
 	if err != nil {
 		return err
 	}
 	_, err = l.db.Exec("INSERT INTO Files VALUES ($1, $2, $3)",
 		crypto.Base64EncodeString(f.Id),
-		crypto.Base64EncodeString(rand),
+		crypto.Base64EncodeString(f.rand),
 		fstr,
 	)
 	if err != nil {
@@ -65,7 +65,7 @@ func (l *LevelDB) InsertFile(f *File, rand []byte) error {
 	return nil
 }
 
-func (l *LevelDB) GetFiles() ([]*File, error) {
+func (l *levelDB) allFiles() ([]*File, error) {
 	fsarr, err := l.getFiles()
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (l *LevelDB) GetFiles() ([]*File, error) {
 	return files, nil
 }
 
-func (l *LevelDB) getFiles() ([]string, error) {
+func (l *levelDB) getFiles() ([]string, error) {
 	rows, err := l.db.Query("Select File from Files")
 	if err != nil {
 		return nil, err
