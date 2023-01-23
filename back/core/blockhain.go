@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/qwertyqq2/filebc/core/types"
+	"github.com/qwertyqq2/filebc/crypto"
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/syncbc"
 	"github.com/qwertyqq2/filebc/user"
@@ -25,6 +26,7 @@ func DefaultConf() *ConfBc {
 type Blockchain struct {
 	conf          *ConfBc
 	coll          *files.Collector
+	dblevel       *levelDB
 	lastBlock     uint64
 	flashInterval uint64
 	snap          values.Bytes
@@ -40,6 +42,10 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 		return nil, err
 	}
 	conf := DefaultConf()
+	ldb, err := NewLevelDB()
+	if err != nil {
+		return nil, err
+	}
 	genesis := types.NewGenesisBLock(creator)
 	snap, err := coll.State()
 	if err != nil {
@@ -48,6 +54,7 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 	return &Blockchain{
 		conf:          conf,
 		coll:          coll,
+		dblevel:       ldb,
 		lastBlock:     uint64(0),
 		flashInterval: uint64(0),
 		snap:          snap,
@@ -58,6 +65,9 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 }
 
 func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
+	if len(blocks) == 0 {
+		return fmt.Errorf("nil blocks")
+	}
 	for i := 1; i < len(blocks); i++ {
 		cur, prev := blocks[i], blocks[i-1]
 		if cur.Number != prev.Number+1 || !bytes.Equal(cur.PrevBlock, prev.HashBlock) ||
@@ -65,6 +75,29 @@ func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
 			return fmt.Errorf("incorrect base data block")
 		}
 	}
+
+	var (
+		n       = len(blocks)
+		errChan chan error
+		wg      sync.WaitGroup
+	)
+
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			wg.Add(1)
+			if err := blocks[i].EmptyBlock(); err != nil {
+				errChan <- err
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	select {
+	case err := <-errChan:
+		return err
+	default:
+	}
+
 	ok := bc.sm.TryLock()
 	if !ok {
 		return fmt.Errorf("Chain is stopped")
@@ -75,30 +108,36 @@ func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
 
 func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 	var (
-		n       = len(blocks)
-		curSnap = bc.snap
-		//last    = bc.lastBlock
-		dataBlocks values.Bytes
-		wg         sync.WaitGroup
+		block *types.Block
 	)
+	iterChain := newIterator(blocks)
+	validator := newValidator(bc)
+	fblock, _ := iterChain.next()
 
-	fs := make([]*files.File, 0)
-	for i := 0; i < n; i++ {
-		go func(i int) {
-			wg.Add(1)
-			if !bc.verifyBlock(blocks[i]) {
-
-			}
-			dataBlocks = blocks[i].Data()[i]
-			fs = append(fs, files.NewFile(string(dataBlocks)))
-		}(i)
+	err := validator.add(fblock.Transactions()...)
+	if err != nil {
+		return err
 	}
-	wg.Wait()
-	tempState := bc.coll
+
+	for ; err != nil && block != nil; block, err = iterChain.next() {
+		err = validator.add(block.Transactions()...)
+		if err != nil {
+			return err
+		}
+	}
+
+	iterChain.back()
+	block, _ = iterChain.next()
+	for ; err != nil && block != nil; block, err = iterChain.next() {
+		serblock, err := block.SerializeBlock()
+		if err != nil {
+			return err
+		}
+		err = bc.dblevel.insertBlock(crypto.Base64EncodeString(block.HashBlock), serblock)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
-}
-
-func (bc *Blockchain) verifyBlock(block *types.Block) bool {
-	return true
 }

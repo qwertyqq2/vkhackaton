@@ -45,4 +45,11 @@ func loadLevel() (*levelDB, error) {
 		db: db,
 	}, nil
 }
- 
+
+func (l *levelDB) insertBlock(hash, block string) error {
+	_, err := l.db.Exec("INSERT INTO Blockchain (Hash, Block) VALUES ($1, $2);",
+		hash,
+		block,
+	)
+	return err
+}

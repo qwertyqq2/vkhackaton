@@ -18,10 +18,10 @@ type TxnPost struct {
 	Sender    string       `json:"sender"`
 	PostId    values.Bytes `json:"postId"`
 	ToStorage uint64       `json:"toStorage"`
-	HashTx    values.Bytes `json:"hashTx"`
-	SignTx    values.Bytes `json:"signTx"`
+	Hash      values.Bytes `json:"hashTx"`
+	Sign      values.Bytes `json:"signTx"`
 	PrevBlock values.Bytes `json:"prevBlock"`
-	DataTx    values.Bytes `json:"data"`
+	Data      values.Bytes `json:"data"`
 }
 
 func NewTxPost(sender *user.User, prevHash values.Bytes, post *files.File) (*TxnPost, error) {
@@ -37,9 +37,9 @@ func NewTxPost(sender *user.User, prevHash values.Bytes, post *files.File) (*Txn
 		PrevBlock: prevHash,
 		PostId:    post.Id,
 		ToStorage: uint64(toStorage),
-		DataTx:    post.Data,
+		Data:      post.Data,
 	}
-	err := tx.Sign(sender)
+	err := tx.SignTx(sender)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (t *TxnPost) hash() values.Bytes {
 		crypto.ToBytes(t.ToStorage))
 }
 
-func (t *TxnPost) Sign(u *user.User) error {
+func (t *TxnPost) SignTx(u *user.User) error {
 	h := t.hash()
 	if h == nil {
 		return fmt.Errorf("nil hash")
@@ -64,13 +64,13 @@ func (t *TxnPost) Sign(u *user.User) error {
 	if err != nil {
 		return err
 	}
-	t.HashTx = h
-	t.SignTx = sign
+	t.Hash = h
+	t.Sign = sign
 	return nil
 }
 
 func (t *TxnPost) hashValid() bool {
-	return bytes.Equal(t.HashTx, t.hash())
+	return bytes.Equal(t.Hash, t.hash())
 }
 
 func (t *TxnPost) signValid(senderstr string) bool {
@@ -78,11 +78,31 @@ func (t *TxnPost) signValid(senderstr string) bool {
 	if sender == nil {
 		return false
 	}
-	err := user.VerifySign(sender, t.HashTx, t.SignTx)
+	err := user.VerifySign(sender, t.Hash, t.Sign)
 	if err != nil {
 		return false
 	}
 	return true
+}
+
+func (t *TxnPost) GetData() values.Bytes {
+	return t.Data
+}
+
+func (t *TxnPost) GetHash() values.Bytes {
+	return t.Hash
+}
+
+func (t *TxnPost) GetSender() string {
+	return t.Sender
+}
+
+func (t *TxnPost) GetReceiver() string {
+	return ""
+}
+
+func (t *TxnPost) GetValue() uint64 {
+	return 0
 }
 
 func (t *TxnPost) Valid() bool {
@@ -92,12 +112,27 @@ func (t *TxnPost) Valid() bool {
 	return true
 }
 
-func (t *TxnPost) Hash() values.Bytes {
-	return t.HashTx
+func (t *TxnPost) Empty() error {
+	if t.Sender == "" {
+		return fmt.Errorf("nil sender")
+	}
+	if t.Data == nil {
+		return fmt.Errorf("nil data post")
+	}
+	if t.Sign == nil {
+		return fmt.Errorf("nil sign")
+	}
+	if t.ToStorage == 0 {
+		return fmt.Errorf("nil storage")
+	}
+	if t.Hash == nil {
+		return fmt.Errorf("nil hash ")
+	}
+	return nil
 }
 
-func (t *TxnPost) Data() values.Bytes {
-	return t.DataTx
+func (t *TxnPost) GetType() uint {
+	return t.Type
 }
 
 func (t *TxnPost) SerializeTx() (string, error) {

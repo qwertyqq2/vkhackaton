@@ -18,8 +18,8 @@ type TxnTransfer struct {
 	Receiver  string       `json:"receiver"`
 	Value     uint64       `json:"value"`
 	ToStorage uint64       `json:"toStorage"`
-	HashTx    values.Bytes `json:"hashTx"`
-	SignTx    values.Bytes `json:"sign"`
+	Hash      values.Bytes `json:"hashTx"`
+	Sign      values.Bytes `json:"sign"`
 	PrevBlock values.Bytes `json:"prevBlock"`
 }
 
@@ -35,7 +35,7 @@ func NewTxTransfer(sender *user.User, prevHash values.Bytes, receiver *user.Addr
 		ToStorage: toStorage,
 		PrevBlock: prevHash,
 	}
-	err := tx.Sign(sender)
+	err := tx.SignTx(sender)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (t *TxnTransfer) hash() values.Bytes {
 		t.PrevBlock)
 }
 
-func (t *TxnTransfer) Sign(u *user.User) error {
+func (t *TxnTransfer) SignTx(u *user.User) error {
 	h := t.hash()
 	if h == nil {
 		return fmt.Errorf("nil hash")
@@ -61,13 +61,13 @@ func (t *TxnTransfer) Sign(u *user.User) error {
 	if err != nil {
 		return err
 	}
-	t.HashTx = h
-	t.SignTx = sign
+	t.Hash = h
+	t.Sign = sign
 	return nil
 }
 
 func (t *TxnTransfer) hashValid() bool {
-	return bytes.Equal(t.HashTx, t.hash())
+	return bytes.Equal(t.Hash, t.hash())
 }
 
 func (t *TxnTransfer) signValid(senderstr string) bool {
@@ -75,11 +75,31 @@ func (t *TxnTransfer) signValid(senderstr string) bool {
 	if sender == nil {
 		return false
 	}
-	err := user.VerifySign(sender, t.HashTx, t.SignTx)
+	err := user.VerifySign(sender, t.Hash, t.Sign)
 	if err != nil {
 		return false
 	}
 	return true
+}
+
+func (t *TxnTransfer) GetData() values.Bytes {
+	return nil
+}
+
+func (t *TxnTransfer) GetHash() values.Bytes {
+	return t.Hash
+}
+
+func (t *TxnTransfer) GetSender() string {
+	return t.Sender
+}
+
+func (t *TxnTransfer) GetReceiver() string {
+	return t.Receiver
+}
+
+func (t *TxnTransfer) GetValue() uint64 {
+	return t.Value
 }
 
 func (t *TxnTransfer) Valid() bool {
@@ -89,12 +109,34 @@ func (t *TxnTransfer) Valid() bool {
 	return true
 }
 
-func (t *TxnTransfer) Hash() values.Bytes {
-	return t.HashTx
-}
-
 func (t *TxnTransfer) Data() values.Bytes {
 	return nil
+}
+
+func (t *TxnTransfer) Empty() error {
+	if t.Sender == "" {
+		return fmt.Errorf("nil sender")
+	}
+	if t.Receiver == "" {
+		return fmt.Errorf("nil receiver")
+	}
+	if t.Value == 0 {
+		return fmt.Errorf("nil value")
+	}
+	if t.Sign == nil {
+		return fmt.Errorf("nil sign")
+	}
+	if t.ToStorage == 0 {
+		return fmt.Errorf("nil storage")
+	}
+	if t.Hash == nil {
+		return fmt.Errorf("nil hash ")
+	}
+	return nil
+}
+
+func (t *TxnTransfer) GetType() uint {
+	return t.Type
 }
 
 func (t *TxnTransfer) SerializeTx() (string, error) {

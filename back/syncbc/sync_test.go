@@ -2,6 +2,7 @@ package syncbc
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -16,8 +17,11 @@ func maingor(sm *SyncBcMutex) {
 
 }
 
+func Print() {
+	fmt.Println(5)
+}
+
 func TestMutex(t *testing.T) {
-	sm := NewSyncBc()
-	fmt.Println(sm.TryLock())
-	maingor(sm)
+	var once sync.Once
+	once.Do(Print)
 }

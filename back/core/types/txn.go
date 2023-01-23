@@ -11,13 +11,23 @@ import (
 )
 
 type Transaction interface {
-	Sign(*user.User) error
+	SignTx(*user.User) error
 
 	Valid() bool
 
-	Hash() values.Bytes
+	GetHash() values.Bytes
 
-	Data() values.Bytes
+	GetSender() string
+
+	GetReceiver() string
+
+	GetValue() uint64
+
+	GetData() values.Bytes
+
+	GetType() uint
+
+	Empty() error
 
 	SerializeTx() (string, error)
 }

@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/qwertyqq2/filebc/crypto"
@@ -56,10 +58,10 @@ func NewGenesisBLock(creator *user.Address) *Block {
 func (b *Block) hash() values.Bytes {
 	temp := []byte{}
 	for _, tx := range b.transactions {
-		if tx.Hash() == nil {
+		if tx.GetHash() == nil {
 			return nil
 		}
-		temp = values.HashSum(temp, tx.Hash())
+		temp = values.HashSum(temp, tx.GetHash())
 	}
 	return values.HashSum(
 		temp,
@@ -75,7 +77,91 @@ func (b *Block) hash() values.Bytes {
 func (block *Block) Data() []values.Bytes {
 	data := make([]values.Bytes, len(block.transactions))
 	for i, tx := range block.transactions {
-		data[i] = tx.Data()
+		data[i] = tx.GetData()
 	}
 	return data
+}
+
+func (block *Block) EmptyBlock() error {
+	if block.CurShap == nil || block.HashBlock == nil || block.PrevBlock == nil || block.Sign == nil {
+		return fmt.Errorf("nil hash")
+	}
+	if block.Number == 0 {
+		return fmt.Errorf("zero number")
+	}
+	if block.Miner == "" {
+		return fmt.Errorf("nil miner")
+	}
+	if len(block.transactions) == 0 {
+		return fmt.Errorf("0 txs")
+	}
+	return nil
+}
+
+func (block *Block) SerializeBlock() (string, error) {
+	jsonData, err := json.MarshalIndent(block, " ", "\t")
+	if err != nil {
+		return "", err
+	}
+	return string(jsonData), nil
+}
+
+func DeserializeBlock(data string) (*Block, error) {
+	var block Block
+	err := json.Unmarshal([]byte(data), &block)
+	if err != nil {
+		return nil, err
+	}
+	return &block, nil
+}
+
+func (block *Block) Transactions() []Transaction {
+	return block.transactions
+}
+
+type blockIterator struct {
+	index        int
+	transactions []Transaction
+}
+
+func BlockIterator(block *Block) *blockIterator {
+	return &blockIterator{
+		index:        -1,
+		transactions: block.transactions,
+	}
+}
+
+func (iter *blockIterator) next() (Transaction, error) {
+	if iter.index+1 >= len(iter.transactions) {
+		iter.index = len(iter.transactions)
+		return nil, fmt.Errorf("end iterator")
+	}
+	iter.index++
+	return iter.transactions[iter.index], nil
+}
+
+func (iter *blockIterator) prev() Transaction {
+	if iter.index < 1 {
+		return nil
+	}
+	return iter.transactions[iter.index-1]
+}
+
+func (iter *blockIterator) current() Transaction {
+	if iter.index == -1 || iter.index >= len(iter.transactions) {
+		return nil
+	}
+	return iter.transactions[iter.index]
+}
+
+func (iter *blockIterator) first() Transaction {
+	return iter.transactions[0]
+}
+
+func (iter *blockIterator) remaining() int {
+	return len(iter.transactions) - iter.index
+}
+
+func (iter *blockIterator) processed() int {
+	return iter.index + 1
 }
