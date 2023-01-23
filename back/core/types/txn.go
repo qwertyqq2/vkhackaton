@@ -17,6 +17,8 @@ type Transaction interface {
 
 	Hash() values.Bytes
 
+	Data() values.Bytes
+
 	SerializeTx() (string, error)
 }
 

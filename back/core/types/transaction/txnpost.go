@@ -21,7 +21,7 @@ type TxnPost struct {
 	HashTx    values.Bytes `json:"hashTx"`
 	SignTx    values.Bytes `json:"signTx"`
 	PrevBlock values.Bytes `json:"prevBlock"`
-	Data      values.Bytes `json:"data"`
+	DataTx    values.Bytes `json:"data"`
 }
 
 func NewTxPost(sender *user.User, prevHash values.Bytes, post *files.File) (*TxnPost, error) {
@@ -37,7 +37,7 @@ func NewTxPost(sender *user.User, prevHash values.Bytes, post *files.File) (*Txn
 		PrevBlock: prevHash,
 		PostId:    post.Id,
 		ToStorage: uint64(toStorage),
-		Data:      post.Data,
+		DataTx:    post.Data,
 	}
 	err := tx.Sign(sender)
 	if err != nil {
@@ -94,6 +94,10 @@ func (t *TxnPost) Valid() bool {
 
 func (t *TxnPost) Hash() values.Bytes {
 	return t.HashTx
+}
+
+func (t *TxnPost) Data() values.Bytes {
+	return t.DataTx
 }
 
 func (t *TxnPost) SerializeTx() (string, error) {

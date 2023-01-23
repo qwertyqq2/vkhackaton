@@ -93,6 +93,10 @@ func (t *TxnTransfer) Hash() values.Bytes {
 	return t.HashTx
 }
 
+func (t *TxnTransfer) DataTx() values.Bytes {
+	return nil
+}
+
 func (t *TxnTransfer) SerializeTx() (string, error) {
 	jsonData, err := json.MarshalIndent(*t, "", "\t")
 	if err != nil {

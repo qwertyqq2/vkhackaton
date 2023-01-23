@@ -5,24 +5,18 @@ import (
 	"encoding/json"
 
 	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/values"
 )
 
 type File struct {
-	Id   []byte `json:"id"`
-	Data []byte `json:"data"`
+	Id   values.Bytes `json:"id"`
+	Data values.Bytes `json:"data"`
 
-	rand []byte
+	rand values.Bytes
 }
 
-func idFile(data string, rand []byte) []byte {
-	return crypto.HashSum(
-		bytes.Join(
-			[][]byte{
-				[]byte(data),
-				rand,
-			},
-			[]byte{},
-		))
+func idFile(data string, rand values.Bytes) values.Bytes {
+	return values.HashSum([]byte(data), rand)
 }
 
 func NewFile(data string) *File {
