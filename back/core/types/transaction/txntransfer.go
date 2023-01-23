@@ -93,7 +93,7 @@ func (t *TxnTransfer) Hash() values.Bytes {
 	return t.HashTx
 }
 
-func (t *TxnTransfer) DataTx() values.Bytes {
+func (t *TxnTransfer) Data() values.Bytes {
 	return nil
 }
 
