@@ -20,7 +20,7 @@ type Block struct {
 	PrevSnap  values.Bytes `json:"prevSnap"`
 	CurShap   values.Bytes `json:"curSnap"`
 	HashBlock values.Bytes `json:"hashBlock"`
-	Proof     uint64       `json:"nonce"`
+	Proof     values.Bytes `json:"nonce"`
 	Time      string       `json:"time"`
 	Miner     string       `json:"miner"`
 	Diff      uint8        `json:"diff"`
@@ -80,6 +80,15 @@ func (block *Block) Data() []values.Bytes {
 		data[i] = tx.GetData()
 	}
 	return data
+}
+
+func (block *Block) Pow() error {
+	nonce, f := crypto.ProowOfWork(block.CurShap, block.Diff, nil)
+	if !f {
+		return fmt.Errorf("cant pow")
+	}
+	block.Proof = nonce
+	return nil
 }
 
 func (block *Block) EmptyBlock() error {

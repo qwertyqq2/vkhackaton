@@ -142,6 +142,25 @@ func (l *levelDB) addBalance(address string, delta uint64) error {
 	return err
 }
 
+func (l *levelDB) subBalance(address string, delta uint64) error {
+	if l.existUser(address) {
+		_, err := l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
+			int(-delta),
+			address,
+		)
+		return err
+	}
+	err := l.newUser(address)
+	if err != nil {
+		return err
+	}
+	_, err = l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
+		int(delta),
+		address,
+	)
+	return err
+}
+
 func (l *levelDB) getBalance(address string) (uint64, error) {
 	row := l.db.QueryRow("Select Balance From Users Where Address=$1", address)
 	var user wrapper

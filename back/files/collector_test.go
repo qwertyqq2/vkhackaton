@@ -12,7 +12,7 @@ func TestCollector(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, err := c.State()
+	state, err := c.Snap()
 	if err != nil {
 		t.Fatal(err)
 	}

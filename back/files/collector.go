@@ -44,7 +44,7 @@ func LoadCollector() (*Collector, error) {
 	}, nil
 }
 
-func (c *Collector) State(fs ...*File) (values.Bytes, error) {
+func (c *Collector) Snap() (values.Bytes, error) {
 	files, err := c.ldb.allFiles()
 	if err != nil {
 		return nil, err
@@ -52,11 +52,6 @@ func (c *Collector) State(fs ...*File) (values.Bytes, error) {
 	ids := make([]values.Bytes, 0)
 	for _, f := range files {
 		ids = append(ids, f.Id)
-	}
-	if len(fs) > 0 {
-		for _, f := range fs {
-			ids = append(ids, f.Id)
-		}
 	}
 	usersWrap, err := c.ldb.getUsers()
 	if err != nil {
@@ -76,14 +71,32 @@ func (c *Collector) State(fs ...*File) (values.Bytes, error) {
 	return c.state.Get(ids...), nil
 }
 
+func (c *Collector) AddUser(snapState values.Bytes, users ...*user.User) values.Bytes {
+	for _, u := range users {
+		snapState = c.state.Add(snapState, u.Hash())
+	}
+	return snapState
+}
+
+func (c *Collector) AddFile(snapState values.Bytes, fs ...*File) values.Bytes {
+	for _, f := range fs {
+		snapState = c.state.Add(snapState, f.Id)
+	}
+	return snapState
+}
+
 func (c *Collector) Balance(address *user.Address) (uint64, error) {
 	return c.ldb.getBalance(address.String())
 }
 
-func (c *Collector) AddFile(file *File) error {
+func (c *Collector) InsertFile(file *File) error {
 	return c.ldb.insertFile(file)
 }
 
 func (c *Collector) AddBalance(address *user.Address, delta uint64) error {
 	return c.ldb.addBalance(address.String(), delta)
+}
+
+func (c *Collector) SubBalance(address *user.Address, delta uint64) error {
+	return c.ldb.subBalance(address.String(), delta)
 }

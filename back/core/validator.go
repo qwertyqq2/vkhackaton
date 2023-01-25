@@ -30,31 +30,46 @@ func newValidator(bc *Blockchain) *validator {
 	}
 }
 
-func (validator *validator) add(txs ...types.Transaction) error {
+func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (values.Bytes, error) {
 	for _, tx := range txs {
 		if err := tx.Empty(); err != nil {
-			return err
+			return nil, err
 		}
 		switch tx.GetType() {
 		case transaction.TypePostTx:
 			if !validator.validPostSize(tx.GetData()) {
-				return fmt.Errorf("invalid size post")
+				return nil, fmt.Errorf("invalid size post")
 			}
 			if !validator.validMinReserveForPost(tx.GetSender()) {
-				return fmt.Errorf("not enough tokens for post")
+				return nil, fmt.Errorf("not enough tokens for post")
 			}
 			file := files.NewFile(string(tx.GetData()))
-			state, err := validator.bc.coll.State(file)
-			if err != nil {
-				return err
-			}
-			validator.state = state
+			return validator.bc.coll.AddFile(state, file), nil
 
 		case transaction.TypeTransferTx:
-
+			if !validator.validValue(tx.GetSender(), tx.GetValue()) {
+				return nil, fmt.Errorf("invalid value")
+			}
+			bal1, err := validator.bc.coll.Balance(user.ParseAddress(tx.GetSender()))
+			if err != nil {
+				return nil, fmt.Errorf("something to do with balance")
+			}
+			bal2, err := validator.bc.coll.Balance(user.ParseAddress(tx.GetReceiver()))
+			if err != nil {
+				return nil, fmt.Errorf("something to do with balance")
+			}
+			u1 := &user.User{
+				Addr:    user.ParseAddress(tx.GetSender()),
+				Balance: bal1,
+			}
+			u2 := &user.User{
+				Addr:    user.ParseAddress(tx.GetReceiver()),
+				Balance: bal2,
+			}
+			return validator.bc.coll.AddUser(state, u1, u2), nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (validator *validator) validPostSize(post values.Bytes) bool {

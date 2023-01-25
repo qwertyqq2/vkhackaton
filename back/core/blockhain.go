@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/qwertyqq2/filebc/core/types"
+	"github.com/qwertyqq2/filebc/core/types/transaction"
 	"github.com/qwertyqq2/filebc/crypto"
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/syncbc"
@@ -27,7 +28,9 @@ type Blockchain struct {
 	conf          *ConfBc
 	coll          *files.Collector
 	dblevel       *levelDB
-	lastBlock     uint64
+	lastNumber    uint64
+	lastBlock     *types.Block
+	lastHashBlock values.Bytes
 	flashInterval uint64
 	snap          values.Bytes
 	genesisBlock  *types.Block
@@ -47,7 +50,7 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 		return nil, err
 	}
 	genesis := types.NewGenesisBLock(creator)
-	snap, err := coll.State()
+	snap, err := coll.Snap()
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +58,9 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 		conf:          conf,
 		coll:          coll,
 		dblevel:       ldb,
-		lastBlock:     uint64(0),
+		lastNumber:    uint64(0),
 		flashInterval: uint64(0),
+		lastHashBlock: values.Bytes("first"),
 		snap:          snap,
 		genesisBlock:  genesis,
 		wg:            sync.WaitGroup{},
@@ -114,13 +118,18 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 	validator := newValidator(bc)
 	fblock, _ := iterChain.next()
 
-	err := validator.add(fblock.Transactions()...)
+	snap, err := bc.coll.Snap()
+	if err != nil {
+		return err
+	}
+
+	snap, err = validator.add(snap, fblock.Transactions()...)
 	if err != nil {
 		return err
 	}
 
 	for ; err != nil && block != nil; block, err = iterChain.next() {
-		err = validator.add(block.Transactions()...)
+		snap, err = validator.add(snap, block.Transactions()...)
 		if err != nil {
 			return err
 		}
@@ -137,7 +146,77 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 		if err != nil {
 			return err
 		}
+		for _, tx := range block.Transactions() {
+			switch tx.GetType() {
+			case transaction.TypePostTx:
+				err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
+				if err != nil {
+					return err
+				}
+			case transaction.TypeTransferTx:
+				err := bc.coll.SubBalance(user.ParseAddress(tx.GetSender()), tx.GetValue())
+				if err != nil {
+					return err
+				}
+				err = bc.coll.AddBalance(user.ParseAddress(tx.GetReceiver()), tx.GetValue())
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
-
+	bc.lastHashBlock = block.HashBlock
+	bc.lastBlock = block
+	bc.lastNumber = block.Number
+	bc.snap = snap
 	return nil
+}
+
+func (bc *Blockchain) AddBlock(u *user.User, txs ...types.Transaction) (*types.Block, error) {
+	validator := newValidator(bc)
+	snap, err := bc.coll.Snap()
+	if err != nil {
+		return nil, err
+	}
+	for _, tx := range txs {
+		snap, err = validator.add(snap, tx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	block := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.snap, u.Addr)
+	if err := block.Pow(); err != nil {
+		return nil, err
+	}
+	serblock, err := block.SerializeBlock()
+	if err != nil {
+		return nil, err
+	}
+	err = bc.dblevel.insertBlock(crypto.Base64EncodeString(block.HashBlock), serblock)
+	if err != nil {
+		return nil, err
+	}
+	for _, tx := range block.Transactions() {
+		switch tx.GetType() {
+		case transaction.TypePostTx:
+			err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
+			if err != nil {
+				return nil, err
+			}
+		case transaction.TypeTransferTx:
+			err := bc.coll.SubBalance(user.ParseAddress(tx.GetSender()), tx.GetValue())
+			if err != nil {
+				return nil, err
+			}
+			err = bc.coll.AddBalance(user.ParseAddress(tx.GetReceiver()), tx.GetValue())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	bc.lastHashBlock = block.HashBlock
+	bc.lastBlock = block
+	bc.lastNumber = block.Number
+	bc.snap = snap
+	return block, nil
 }

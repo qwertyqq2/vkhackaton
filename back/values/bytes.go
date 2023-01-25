@@ -2,16 +2,20 @@ package values
 
 import (
 	"bytes"
-
-	"github.com/qwertyqq2/filebc/crypto"
+	"crypto/sha256"
 )
 
 type Bytes []byte
 
 func HashSum(bs ...[]byte) Bytes {
-	return crypto.HashSum(
+	return hashSum(
 		bytes.Join(
 			bs,
 			[]byte{},
 		))
+}
+
+func hashSum(data []byte) []byte {
+	sum := sha256.Sum256(data)
+	return sum[:]
 }
