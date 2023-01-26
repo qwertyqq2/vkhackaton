@@ -3,6 +3,7 @@ package crypto
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -16,6 +17,7 @@ func ProowOfWork(blockHash []byte, diff uint8, ch chan bool) ([]byte, bool) {
 		hash    []byte
 	)
 	Target.Lsh(Target, 256-uint(diff))
+	fmt.Println("mining...")
 	for nonce < math.MaxUint64 {
 		select {
 		case <-ch:

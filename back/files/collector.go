@@ -33,18 +33,8 @@ func NewCollector() (*Collector, error) {
 	}, nil
 }
 
-func LoadCollector() (*Collector, error) {
-	l, err := LoadLevel()
-	if err != nil {
-		return nil, err
-	}
-	return &Collector{
-		ldb:   l,
-		state: xorstate.NewXorState(lenHash),
-	}, nil
-}
-
 func (c *Collector) Snap() (values.Bytes, error) {
+
 	files, err := c.ldb.allFiles()
 	if err != nil {
 		return nil, err

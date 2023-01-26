@@ -3,10 +3,12 @@ package core
 import (
 	"database/sql"
 	"os"
+
+	"github.com/qwertyqq2/filebc/core/types"
 )
 
 const (
-	DbName = "files.db"
+	DbName = "blockchain.db"
 )
 
 type levelDB struct {
@@ -52,4 +54,27 @@ func (l *levelDB) insertBlock(hash, block string) error {
 		block,
 	)
 	return err
+}
+
+func (l *levelDB) getBlocks() (types.Blocks, error) {
+	rows, err := l.db.Query("Select Block from Blockchain")
+	if err != nil {
+		return nil, err
+	}
+	blocksstr := make([]string, 0)
+	var bs string
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&bs)
+		blocksstr = append(blocksstr, bs)
+	}
+	blocks := make([]*types.Block, 0)
+	for _, bs := range blocksstr {
+		b, err := types.DeserializeBlock(bs)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, b)
+	}
+	return blocks, nil
 }

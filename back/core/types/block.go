@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	Difficulty = 15
+	Difficulty = 22
 )
 
 type Block struct {
@@ -20,12 +20,14 @@ type Block struct {
 	PrevSnap  values.Bytes `json:"prevSnap"`
 	CurShap   values.Bytes `json:"curSnap"`
 	HashBlock values.Bytes `json:"hashBlock"`
-	Proof     values.Bytes `json:"nonce"`
+	Proof     values.Bytes `json:"proof"`
 	Time      string       `json:"time"`
 	Miner     string       `json:"miner"`
 	Diff      uint8        `json:"diff"`
 	Sign      values.Bytes `json:"sign"`
+	TxsHash   values.Bytes `json:"txsHash"`
 
+	accepted     bool
 	transactions []Transaction
 }
 
@@ -39,6 +41,7 @@ func NewBlock(prevNumber uint64, prevBlock, prevSnap values.Bytes, miner *user.A
 		Miner:        miner.String(),
 		Diff:         Difficulty,
 		transactions: make([]Transaction, 0),
+		accepted:     false,
 	}
 }
 
@@ -55,6 +58,23 @@ func NewGenesisBLock(creator *user.Address) *Block {
 	return gen
 }
 
+func (b *Block) InserTxs(txs ...Transaction) {
+	for _, tx := range txs {
+		b.transactions = append(b.transactions, tx)
+	}
+}
+
+func (b *Block) txhash() values.Bytes {
+	temp := []byte{}
+	for _, tx := range b.transactions {
+		if tx.GetHash() == nil {
+			return nil
+		}
+		temp = values.HashSum(temp, tx.GetHash())
+	}
+	return temp
+}
+
 func (b *Block) hash() values.Bytes {
 	temp := []byte{}
 	for _, tx := range b.transactions {
@@ -64,7 +84,7 @@ func (b *Block) hash() values.Bytes {
 		temp = values.HashSum(temp, tx.GetHash())
 	}
 	return values.HashSum(
-		temp,
+		b.TxsHash,
 		crypto.ToBytes(b.Number),
 		b.PrevBlock,
 		b.PrevSnap,
@@ -72,6 +92,26 @@ func (b *Block) hash() values.Bytes {
 		crypto.ToBytes(uint64(b.Diff)),
 		[]byte(b.Miner),
 		[]byte(b.Time))
+}
+
+func (b *Block) Accept(u *user.User) error {
+	if b.accepted {
+		return fmt.Errorf("block already accepted")
+	}
+	b.TxsHash = b.txhash()
+	b.HashBlock = b.hash()
+	s, err := u.SignData(b.HashBlock)
+	if err != nil {
+		return err
+	}
+	b.Sign = s
+	proof, f := crypto.ProowOfWork(b.HashBlock, b.Diff, nil)
+	if !f {
+		return fmt.Errorf("Cant getting proof")
+	}
+	b.Proof = proof
+	b.accepted = true
+	return nil
 }
 
 func (block *Block) Data() []values.Bytes {
@@ -128,49 +168,10 @@ func (block *Block) Transactions() []Transaction {
 	return block.transactions
 }
 
-type blockIterator struct {
-	index        int
-	transactions []Transaction
+func (block *Block) TransactionsHash() values.Bytes {
+	return block.TxsHash
 }
 
-func BlockIterator(block *Block) *blockIterator {
-	return &blockIterator{
-		index:        -1,
-		transactions: block.transactions,
-	}
-}
-
-func (iter *blockIterator) next() (Transaction, error) {
-	if iter.index+1 >= len(iter.transactions) {
-		iter.index = len(iter.transactions)
-		return nil, fmt.Errorf("end iterator")
-	}
-	iter.index++
-	return iter.transactions[iter.index], nil
-}
-
-func (iter *blockIterator) prev() Transaction {
-	if iter.index < 1 {
-		return nil
-	}
-	return iter.transactions[iter.index-1]
-}
-
-func (iter *blockIterator) current() Transaction {
-	if iter.index == -1 || iter.index >= len(iter.transactions) {
-		return nil
-	}
-	return iter.transactions[iter.index]
-}
-
-func (iter *blockIterator) first() Transaction {
-	return iter.transactions[0]
-}
-
-func (iter *blockIterator) remaining() int {
-	return len(iter.transactions) - iter.index
-}
-
-func (iter *blockIterator) processed() int {
-	return iter.index + 1
+func (block *Block) Accepted() bool {
+	return block.accepted
 }

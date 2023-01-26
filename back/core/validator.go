@@ -52,11 +52,11 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 			}
 			bal1, err := validator.bc.coll.Balance(user.ParseAddress(tx.GetSender()))
 			if err != nil {
-				return nil, fmt.Errorf("something to do with balance")
+				return nil, fmt.Errorf("something to do with balance sender")
 			}
 			bal2, err := validator.bc.coll.Balance(user.ParseAddress(tx.GetReceiver()))
 			if err != nil {
-				return nil, fmt.Errorf("something to do with balance")
+				return nil, fmt.Errorf("something to do with balance receiver")
 			}
 			u1 := &user.User{
 				Addr:    user.ParseAddress(tx.GetSender()),

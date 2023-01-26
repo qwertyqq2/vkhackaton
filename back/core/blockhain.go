@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/qwertyqq2/filebc/core/types"
 	"github.com/qwertyqq2/filebc/core/types/transaction"
@@ -15,12 +16,14 @@ import (
 )
 
 type ConfBc struct {
-	MinToken uint64 `json:"minTokens"`
+	MinToken   uint64 `json:"minTokens"`
+	InitTokens uint64 `json:"initTokens"`
 }
 
 func DefaultConf() *ConfBc {
 	return &ConfBc{
-		MinToken: 5,
+		MinToken:   5,
+		InitTokens: 100,
 	}
 }
 
@@ -50,11 +53,16 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 		return nil, err
 	}
 	genesis := types.NewGenesisBLock(creator)
+	err = coll.AddBalance(creator, conf.InitTokens)
+	if err != nil {
+		return nil, err
+	}
 	snap, err := coll.Snap()
 	if err != nil {
 		return nil, err
 	}
-	return &Blockchain{
+	genesis.CurShap = snap
+	bc := &Blockchain{
 		conf:          conf,
 		coll:          coll,
 		dblevel:       ldb,
@@ -65,7 +73,18 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 		genesisBlock:  genesis,
 		wg:            sync.WaitGroup{},
 		sm:            syncbc.NewSyncBc(),
-	}, nil
+	}
+	sergenblock, err := genesis.SerializeBlock()
+	if err != nil {
+		return nil, err
+	}
+	if err := bc.dblevel.insertBlock(crypto.Base64EncodeString(genesis.HashBlock), sergenblock); err != nil {
+		return nil, err
+	}
+	bc.lastNumber = 1
+	bc.lastBlock = genesis
+	bc.lastHashBlock = genesis.HashBlock
+	return bc, nil
 }
 
 func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
@@ -79,7 +98,6 @@ func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
 			return fmt.Errorf("incorrect base data block")
 		}
 	}
-
 	var (
 		n       = len(blocks)
 		errChan chan error
@@ -133,9 +151,8 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 		if err != nil {
 			return err
 		}
+		iterChain.back()
 	}
-
-	iterChain.back()
 	block, _ = iterChain.next()
 	for ; err != nil && block != nil; block, err = iterChain.next() {
 		serblock, err := block.SerializeBlock()
@@ -185,9 +202,12 @@ func (bc *Blockchain) AddBlock(u *user.User, txs ...types.Transaction) (*types.B
 		}
 	}
 	block := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.snap, u.Addr)
-	if err := block.Pow(); err != nil {
+	block.InserTxs(txs...)
+	if err := block.Accept(u); err != nil {
 		return nil, err
 	}
+	block.CurShap = snap
+	block.Time = time.Now().Format(time.RFC3339)
 	serblock, err := block.SerializeBlock()
 	if err != nil {
 		return nil, err

@@ -23,6 +23,7 @@ func NewLevelDB() (*levelDB, error) {
 	}
 	fileDb.Close()
 	db, err := sql.Open("sqlite3", DbName)
+	//defer db.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -31,12 +32,15 @@ func NewLevelDB() (*levelDB, error) {
 		Id varchar,
 		Rand varchar,
 		File text
-	);
+	);`)
+	if err != nil {
+		return nil, err
+	}
+	_, err = db.Exec(`
 	CREATE TABLE Users (
 		Address varchar,
 		Balance integer
-	);
-	`)
+	);`)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +49,7 @@ func NewLevelDB() (*levelDB, error) {
 
 func LoadLevel() (*levelDB, error) {
 	db, err := sql.Open("sqlite3", DbName)
+	defer db.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +167,9 @@ func (l *levelDB) subBalance(address string, delta uint64) error {
 }
 
 func (l *levelDB) getBalance(address string) (uint64, error) {
+	if !l.existUser(address) {
+		return 0, nil
+	}
 	row := l.db.QueryRow("Select Balance From Users Where Address=$1", address)
 	var user wrapper
 	err := row.Scan(&user.Bal)
