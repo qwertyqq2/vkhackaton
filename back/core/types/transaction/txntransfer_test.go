@@ -4,21 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/qwertyqq2/filebc/crypto/ring"
 	"github.com/qwertyqq2/filebc/user"
-
-	"github.com/qwertyqq2/filebc/crypto"
 )
 
 func TestSerializeTransfer(t *testing.T) {
-	pk1, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		t.Fatal(err)
-	}
+	pk1 := ring.GeneratePrivate()
 	u1 := user.NewUser(pk1)
-	pk2, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		t.Fatal(err)
-	}
+	pk2 := ring.GeneratePrivate()
 	u2 := user.NewUser(pk2)
 	tx, err := NewTxTransfer(u1, []byte("first"), u2.Address(), 100)
 	if err != nil {
@@ -32,15 +25,9 @@ func TestSerializeTransfer(t *testing.T) {
 }
 
 func TestVerifyTransfer(t *testing.T) {
-	pk1, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		t.Fatal(err)
-	}
+	pk1 := ring.GeneratePrivate()
 	u1 := user.NewUser(pk1)
-	pk2, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		t.Fatal(err)
-	}
+	pk2 := ring.GeneratePrivate()
 	u2 := user.NewUser(pk2)
 	tx, err := NewTxTransfer(u1, []byte("first"), u2.Address(), 100)
 	if err != nil {

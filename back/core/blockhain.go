@@ -171,11 +171,19 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 					return err
 				}
 			case transaction.TypeTransferTx:
-				err := bc.coll.SubBalance(user.ParseAddress(tx.GetSender()), tx.GetValue())
+				sender, err := user.ParseAddress(tx.GetSender())
 				if err != nil {
 					return err
 				}
-				err = bc.coll.AddBalance(user.ParseAddress(tx.GetReceiver()), tx.GetValue())
+				err = bc.coll.SubBalance(sender, tx.GetValue())
+				if err != nil {
+					return err
+				}
+				receiver, err := user.ParseAddress(tx.GetReceiver())
+				if err != nil {
+					return err
+				}
+				err = bc.coll.AddBalance(receiver, tx.GetValue())
 				if err != nil {
 					return err
 				}
@@ -224,11 +232,19 @@ func (bc *Blockchain) AddBlock(u *user.User, txs ...types.Transaction) (*types.B
 				return nil, err
 			}
 		case transaction.TypeTransferTx:
-			err := bc.coll.SubBalance(user.ParseAddress(tx.GetSender()), tx.GetValue())
+			sender, err := user.ParseAddress(tx.GetSender())
 			if err != nil {
 				return nil, err
 			}
-			err = bc.coll.AddBalance(user.ParseAddress(tx.GetReceiver()), tx.GetValue())
+			err = bc.coll.SubBalance(sender, tx.GetValue())
+			if err != nil {
+				return nil, err
+			}
+			receiver, err := user.ParseAddress(tx.GetReceiver())
+			if err != nil {
+				return nil, err
+			}
+			err = bc.coll.AddBalance(receiver, tx.GetValue())
 			if err != nil {
 				return nil, err
 			}

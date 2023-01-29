@@ -50,20 +50,28 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 			if !validator.validValue(tx.GetSender(), tx.GetValue()) {
 				return nil, fmt.Errorf("invalid value")
 			}
-			bal1, err := validator.bc.coll.Balance(user.ParseAddress(tx.GetSender()))
+			sender, err := user.ParseAddress(tx.GetSender())
+			if err != nil {
+				return nil, fmt.Errorf("nil sender")
+			}
+			receiver, err := user.ParseAddress(tx.GetReceiver())
+			if err != nil {
+				return nil, fmt.Errorf("nil receiver")
+			}
+			bal1, err := validator.bc.coll.Balance(sender)
 			if err != nil {
 				return nil, fmt.Errorf("something to do with balance sender")
 			}
-			bal2, err := validator.bc.coll.Balance(user.ParseAddress(tx.GetReceiver()))
+			bal2, err := validator.bc.coll.Balance(receiver)
 			if err != nil {
 				return nil, fmt.Errorf("something to do with balance receiver")
 			}
 			u1 := &user.User{
-				Addr:    user.ParseAddress(tx.GetSender()),
+				Addr:    sender,
 				Balance: bal1,
 			}
 			u2 := &user.User{
-				Addr:    user.ParseAddress(tx.GetReceiver()),
+				Addr:    receiver,
 				Balance: bal2,
 			}
 			return validator.bc.coll.AddUser(state, u1, u2), nil
@@ -77,7 +85,11 @@ func (validator *validator) validPostSize(post values.Bytes) bool {
 }
 
 func (validator *validator) validMinReserveForPost(sender string) bool {
-	bal, err := validator.bc.coll.Balance(user.ParseAddress(sender))
+	addr, err := user.ParseAddress(sender)
+	if err != nil {
+		return false
+	}
+	bal, err := validator.bc.coll.Balance(addr)
 	if err != nil {
 		return false
 	}
@@ -85,7 +97,11 @@ func (validator *validator) validMinReserveForPost(sender string) bool {
 }
 
 func (validator *validator) validValue(sender string, value uint64) bool {
-	bal, err := validator.bc.coll.Balance(user.ParseAddress(sender))
+	addr, err := user.ParseAddress(sender)
+	if err != nil {
+		return false
+	}
+	bal, err := validator.bc.coll.Balance(addr)
 	if err != nil {
 		return false
 	}

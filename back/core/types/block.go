@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/qwertyqq2/filebc/crypto"
@@ -24,7 +25,8 @@ type Block struct {
 	Time      string       `json:"time"`
 	Miner     string       `json:"miner"`
 	Diff      uint8        `json:"diff"`
-	Sign      values.Bytes `json:"sign"`
+	R         *big.Int     `json:"R"`
+	S         *big.Int     `json:"S"`
 	TxsHash   values.Bytes `json:"txsHash"`
 
 	accepted     bool
@@ -104,7 +106,8 @@ func (b *Block) Accept(u *user.User) error {
 	if err != nil {
 		return err
 	}
-	b.Sign = s
+	b.R = s.R
+	b.S = s.S
 	proof, f := crypto.ProowOfWork(b.HashBlock, b.Diff, nil)
 	if !f {
 		return fmt.Errorf("Cant getting proof")
@@ -132,8 +135,11 @@ func (block *Block) Pow() error {
 }
 
 func (block *Block) EmptyBlock() error {
-	if block.CurShap == nil || block.HashBlock == nil || block.PrevBlock == nil || block.Sign == nil {
+	if block.CurShap == nil || block.HashBlock == nil || block.PrevBlock == nil {
 		return fmt.Errorf("nil hash")
+	}
+	if block.R.Cmp(big.NewInt(0)) == -1 || block.S.Cmp(big.NewInt(0)) == -1 {
+		return fmt.Errorf("nil sign")
 	}
 	if block.Number == 0 {
 		return fmt.Errorf("zero number")

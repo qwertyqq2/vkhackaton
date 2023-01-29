@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/crypto/ring"
 	"github.com/qwertyqq2/filebc/user"
 )
 
@@ -28,15 +29,15 @@ func TestCreateDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pk1, _ := crypto.GenerateRSAPrivate()
+	pk1 := ring.GeneratePrivate()
 	u1 := user.NewUser(pk1)
-	pk2, _ := crypto.GenerateRSAPrivate()
+	pk2 := ring.GeneratePrivate()
 	u2 := user.NewUser(pk2)
-	err = l.newUser(u1.Public())
+	err = l.newUser(u1.Addr.String())
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = l.newUser(u2.Public())
+	err = l.newUser(u2.Addr.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,9 +47,9 @@ func TestCreateDb(t *testing.T) {
 	}
 	fmt.Println(len(addrs))
 	fmt.Println("TEST ADD BALANCE")
-	pk3, _ := crypto.GenerateRSAPrivate()
+	pk3 := ring.GeneratePrivate()
 	u3 := user.NewUser(pk3)
-	err = l.newUser(u3.Public())
+	err = l.newUser(u3.Addr.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,9 +71,9 @@ func TestCreateDb(t *testing.T) {
 		fmt.Println("Balance: ", a.Bal)
 	}
 	fmt.Println("New user add")
-	pk4, _ := crypto.GenerateRSAPrivate()
+	pk4 := ring.GeneratePrivate()
 	u4 := user.NewUser(pk4)
-	err = l.addBalance(u4.Public(), 10)
+	err = l.addBalance(u4.Addr.String(), 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,13 +92,13 @@ func TestGetBalance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pk1, _ := crypto.GenerateRSAPrivate()
+	pk1 := ring.GeneratePrivate()
 	u1 := user.NewUser(pk1)
-	err = l.addBalance(u1.Public(), 10)
+	err = l.addBalance(u1.Addr.String(), 10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bal, err := l.getBalance(u1.Public())
+	bal, err := l.getBalance(u1.Addr.String())
 	if err != nil {
 		t.Fatal(err)
 	}

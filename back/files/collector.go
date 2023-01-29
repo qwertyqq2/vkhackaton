@@ -49,7 +49,10 @@ func (c *Collector) Snap() (values.Bytes, error) {
 	}
 	users := make([]*user.User, 0)
 	for _, uw := range usersWrap {
-		addr := user.ParseAddress(uw.Addr)
+		addr, err := user.ParseAddress(uw.Addr)
+		if err != nil {
+			return nil, err
+		}
 		users = append(users, &user.User{
 			Addr:    addr,
 			Balance: uint64(uw.Bal),

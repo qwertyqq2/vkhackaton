@@ -1,51 +1,56 @@
 package user
 
 import (
-	"crypto"
-	"crypto/rsa"
-	"crypto/x509"
+	"fmt"
+	mrand "math/rand"
+	"time"
 
-	mcrypto "github.com/qwertyqq2/filebc/crypto"
-	"github.com/qwertyqq2/filebc/values"
+	"github.com/qwertyqq2/filebc/crypto/ring"
 )
 
 type Address struct {
-	pub *rsa.PublicKey
+	pub *ring.PublicKey
 }
 
-func NewAddress(pk *rsa.PrivateKey) *Address {
+func NewAddress(pk *ring.PrivateKey) *Address {
 	return &Address{
-		pub: &pk.PublicKey,
+		pub: pk.Public(),
 	}
 }
 
 func (a *Address) String() string {
-	return mcrypto.Base64EncodeString(x509.MarshalPKCS1PublicKey(a.pub))
+	return a.pub.String()
 }
 
-func (a *Address) ToBytes() ([]byte, error) {
-	spub, err := x509.MarshalPKIXPublicKey(a.pub)
-	if err != nil {
-		return nil, err
+func (a *Address) Public() *ring.PublicKey {
+	return a.pub
+}
+
+func VeryfySignRing(data []byte, addr []*Address, seed []byte, signs [][]byte) bool {
+	pubs := make([]*ring.PublicKey, len(addr))
+	for i := 0; i < len(addr); i++ {
+		pubs[i] = addr[i].Public()
 	}
-	return spub, nil
+	return ring.VerifyRing(data, &ring.Signature{
+		Ring:  pubs,
+		Seed:  seed,
+		Sings: signs,
+	})
 }
 
-func VerifySign(a *Address, data, sign []byte) error {
-	return rsa.VerifyPSS(a.pub, crypto.SHA256, data, sign, nil)
-}
-
-func ParseAddress(saddr string) *Address {
-	addrb := mcrypto.Base64DecodeString(saddr)
-	pub, err := x509.ParsePKCS1PublicKey(addrb)
-	if err != nil {
-		return nil
+func ParseAddress(saddr string) (*Address, error) {
+	pub := ring.ParsePublic(saddr)
+	if pub != nil {
+		return nil, fmt.Errorf("nil pub")
 	}
 	return &Address{
 		pub: pub,
-	}
+	}, nil
 }
 
-func (a *Address) Bytes() values.Bytes {
-	return mcrypto.RsaPublicByte(a.pub)
+func Shuffle(a []string) {
+	mrand.Seed(time.Now().UnixNano())
+	mrand.Shuffle(len(a), func(i, j int) {
+		a[i], a[j] = a[j], a[i]
+	})
 }

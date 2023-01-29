@@ -5,19 +5,22 @@ import (
 	"testing"
 
 	"github.com/qwertyqq2/filebc/core/types/transaction"
-	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/crypto/ring"
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/user"
 )
 
 func CreatePostTx() (string, error) {
-	pk1, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		return "", err
-	}
+	pk1 := ring.GeneratePrivate()
 	u1 := user.NewUser(pk1)
+	pk2 := ring.GeneratePrivate()
+	u2 := user.NewUser(pk2)
+	pk3 := ring.GeneratePrivate()
+	u3 := user.NewUser(pk3)
+	singers := []*user.Address{u2.Addr, u3.Addr}
+
 	file := files.NewFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
-	txpost, err := transaction.NewTxPost(u1, []byte("first"), file)
+	txpost, err := transaction.NewTxPost(u1, []byte("first"), file, singers)
 	if err != nil {
 		return "", err
 	}
@@ -29,15 +32,9 @@ func CreatePostTx() (string, error) {
 }
 
 func CreateTransferTx() (string, error) {
-	pk1, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		return "", err
-	}
+	pk1 := ring.GeneratePrivate()
 	u1 := user.NewUser(pk1)
-	pk2, err := crypto.GenerateRSAPrivate()
-	if err != nil {
-		return "", err
-	}
+	pk2 := ring.GeneratePrivate()
 	u2 := user.NewUser(pk2)
 	tx, err := transaction.NewTxTransfer(u1, []byte("first"), u2.Address(), 100)
 	if err != nil {

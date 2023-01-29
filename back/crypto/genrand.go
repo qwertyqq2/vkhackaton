@@ -1,8 +1,6 @@
 package crypto
 
 import (
-	crand "crypto/rand"
-	"crypto/rsa"
 	"math/rand"
 	"time"
 )
@@ -15,8 +13,4 @@ func GenerateRandom() []byte {
 		return nil
 	}
 	return slice
-}
-
-func GenerateRSAPrivate() (*rsa.PrivateKey, error) {
-	return rsa.GenerateKey(crand.Reader, 2048)
 }

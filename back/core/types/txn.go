@@ -17,6 +17,8 @@ type Transaction interface {
 
 	GetHash() values.Bytes
 
+	GetSenders() []string
+
 	GetSender() string
 
 	GetReceiver() string

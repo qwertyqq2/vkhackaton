@@ -1,27 +1,26 @@
 package core
 
 import (
-	"crypto/rsa"
 	"fmt"
 	"log"
 	"testing"
 
 	"github.com/qwertyqq2/filebc/core/types"
 	"github.com/qwertyqq2/filebc/core/types/transaction"
-	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/crypto/ring"
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
 )
 
-func initUser() (*user.User, *rsa.PrivateKey, []*user.User) {
+func initUser() (*user.User, *ring.PrivateKey, []*user.User) {
 	users := make([]*user.User, 0)
-	pk1, _ := crypto.GenerateRSAPrivate()
+	pk1 := ring.GeneratePrivate()
 	creator := user.NewUser(pk1)
 	pkCreator := pk1
-	pk2, _ := crypto.GenerateRSAPrivate()
+	pk2 := ring.GeneratePrivate()
 	users = append(users, user.NewUser(pk2))
-	pk3, _ := crypto.GenerateRSAPrivate()
+	pk3 := ring.GeneratePrivate()
 	users = append(users, user.NewUser(pk3))
 	return creator, pkCreator, users
 }
@@ -70,7 +69,7 @@ func TestAddBlock(t *testing.T) {
 	bc.printbc()
 }
 
-func initTransferTxs(creator *user.User, pkCreator *rsa.PrivateKey, prevHash values.Bytes, users []*user.User) []types.Transaction {
+func initTransferTxs(creator *user.User, pkCreator *ring.PrivateKey, prevHash values.Bytes, users []*user.User) []types.Transaction {
 	txs := make([]types.Transaction, 0)
 	for _, u := range users {
 		tx, err := transaction.NewTxTransfer(creator, prevHash, u.Addr, 10)
@@ -98,9 +97,15 @@ func PostTxs(prevHash values.Bytes, users ...*user.User) []types.Transaction {
 	dataFile3 := files.NewFile("is third file for me")
 	dataFiles := []*files.File{dataFile1, dataFile2, dataFile3}
 
+	pk2 := ring.GeneratePrivate()
+	u2 := user.NewUser(pk2)
+	pk3 := ring.GeneratePrivate()
+	u3 := user.NewUser(pk3)
+	singers := []*user.Address{u2.Addr, u3.Addr}
+
 	txs := make([]types.Transaction, 0)
 	for i, u := range users {
-		tx, err := transaction.NewTxPost(u, prevHash, dataFiles[i])
+		tx, err := transaction.NewTxPost(u, prevHash, dataFiles[i], singers)
 		if err != nil {
 			log.Fatal(err)
 		}
