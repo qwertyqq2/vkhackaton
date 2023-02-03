@@ -40,7 +40,7 @@ func VeryfySignRing(data []byte, addr []*Address, seed []byte, signs [][]byte) b
 
 func ParseAddress(saddr string) (*Address, error) {
 	pub := ring.ParsePublic(saddr)
-	if pub != nil {
+	if pub == nil {
 		return nil, fmt.Errorf("nil pub")
 	}
 	return &Address{

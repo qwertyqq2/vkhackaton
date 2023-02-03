@@ -1,38 +1,50 @@
 package main
 
 import (
-	"bytes"
+	"context"
+	"flag"
 	"log"
-	"net/http"
-	"os"
+
+	"github.com/multiformats/go-multiaddr"
+	li "github.com/qwertyqq2/filebc/network/listener"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	data1, err := os.ReadFile("htmlfiles/htmlExample1.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	data2, err := os.ReadFile("htmlfiles/htmlExample2.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	data3, err := os.ReadFile("htmlfiles/htmlExample3.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	data := bytes.Join(
-		[][]byte{
-			data1, data2, data3,
-		},
-		[]byte{},
-	)
-	_, err = w.Write(data)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":3000", nil)
+
+	sourcePort := flag.Int("p", 0, "Source port number")
+	dest := flag.String("d", "", "Destination multiaddr string")
+
+	flag.Parse()
+
+	if *dest == "" {
+		n := li.NewNode(
+			li.ConfigNode{
+				Port: uint16(*sourcePort),
+			},
+		)
+		err := n.Init(context.Background(), false)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		maddr, err := multiaddr.NewMultiaddr(*dest)
+		if err != nil {
+			log.Fatal(err)
+		}
+		n := li.NewNode(
+			li.ConfigNode{
+				Port:          uint16(*sourcePort),
+				BoostrapAddrs: []multiaddr.Multiaddr{maddr},
+			},
+		)
+		err = n.Init(context.Background(), true)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := n.RunStream(context.Background(), maddr); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	select {}
 }

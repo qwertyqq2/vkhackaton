@@ -16,7 +16,11 @@ func TestSerializePost(t *testing.T) {
 	u2 := user.NewUser(pk2)
 	pk3 := ring.GeneratePrivate()
 	u3 := user.NewUser(pk3)
-	singers := []*user.Address{u2.Addr, u3.Addr}
+	pk4 := ring.GeneratePrivate()
+	u4 := user.NewUser(pk4)
+	pk5 := ring.GeneratePrivate()
+	u5 := user.NewUser(pk5)
+	singers := []*user.Address{u2.Addr, u3.Addr, u4.Addr, u5.Addr}
 	file := files.NewFile("first fileqweqweqwweqwwwwwwwwwwwwwwwwwwwwwwwwsqdqsdqwdqdwqddwq")
 	tx, err := NewTxPost(u1, []byte("first"), file, singers)
 	if err != nil {
@@ -54,5 +58,4 @@ func TestVerifyPost(t *testing.T) {
 	} else {
 		t.Log("VERIFY")
 	}
-	fmt.Println(tx.SerializeTx())
 }

@@ -82,7 +82,6 @@ func (t *TxnPost) SignTx(u *user.User) error {
 			return err
 		}
 		pubs[i] = addr.Public()
-		fmt.Println(pubs)
 	}
 	ringSign, err := u.RingSignData(h, pubs, round)
 	if err != nil {
