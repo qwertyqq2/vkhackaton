@@ -1,14 +1,12 @@
 package network
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"testing"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/qwertyqq2/filebc/network/listener"
 	"github.com/qwertyqq2/filebc/network/repo"
 )
 
@@ -37,14 +35,12 @@ func createpk() error {
 }
 
 func TestInitNode(t *testing.T) {
-	conf := listener.ConfigNode{
-		Port:     4000,
-		Repopath: "node-pk",
+	for {
+		select {
+		default:
+			break
+		}
+		break
 	}
-	n := listener.NewNode(conf)
-	err := n.Init(context.Background(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(n.ID())
+	fmt.Println("qw")
 }

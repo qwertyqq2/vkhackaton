@@ -34,7 +34,6 @@ func NewCollector() (*Collector, error) {
 }
 
 func (c *Collector) Snap() (values.Bytes, error) {
-
 	files, err := c.ldb.allFiles()
 	if err != nil {
 		return nil, err

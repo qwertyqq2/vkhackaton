@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/multiformats/go-multiaddr"
-	li "github.com/qwertyqq2/filebc/network/listener"
 )
 
 func main() {
@@ -17,7 +16,7 @@ func main() {
 	flag.Parse()
 
 	if *dest == "" {
-		n := li.NewNode(
+		n := .NewNode(
 			li.ConfigNode{
 				Port: uint16(*sourcePort),
 			},
