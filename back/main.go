@@ -5,45 +5,42 @@ import (
 	"flag"
 	"log"
 
-	"github.com/multiformats/go-multiaddr"
+	nt "github.com/qwertyqq2/filebc/network"
 )
+
+func makeNode(port uint16) nt.P2PNode {
+	conf := nt.DefaultConfig(port)
+
+	node := nt.NewNode(*conf)
+
+	ctx := context.Background()
+
+	err := node.Init(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return node
+}
 
 func main() {
 
 	sourcePort := flag.Int("p", 0, "Source port number")
-	dest := flag.String("d", "", "Destination multiaddr string")
+	list := flag.Bool("l", true, "listen or not")
 
 	flag.Parse()
 
-	if *dest == "" {
-		n := .NewNode(
-			li.ConfigNode{
-				Port: uint16(*sourcePort),
-			},
-		)
-		err := n.Init(context.Background(), false)
+	node := makeNode(uint16(*sourcePort))
+	if *list {
+		err := node.Listen()
 		if err != nil {
 			log.Fatal(err)
 		}
+
 	} else {
-		maddr, err := multiaddr.NewMultiaddr(*dest)
+		err := node.Broadcast()
 		if err != nil {
-			log.Fatal(err)
-		}
-		n := li.NewNode(
-			li.ConfigNode{
-				Port:          uint16(*sourcePort),
-				BoostrapAddrs: []multiaddr.Multiaddr{maddr},
-			},
-		)
-		err = n.Init(context.Background(), true)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := n.RunStream(context.Background(), maddr); err != nil {
 			log.Fatal(err)
 		}
 	}
-
 	select {}
 }
