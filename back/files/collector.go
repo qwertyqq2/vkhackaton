@@ -1,24 +1,23 @@
 package files
 
 import (
+	"fmt"
+	"sync"
+
+	"github.com/qwertyqq2/filebc/crypto"
 	"github.com/qwertyqq2/filebc/files/state/xorstate"
+	"github.com/qwertyqq2/filebc/syncbc"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
 )
 
-const (
-	lenHash = 32
-)
-
-type InState struct {
-	addr *user.Address
-	bal  uint64
-	file *File
-}
-
 type Collector struct {
-	ldb *levelDB
+	syncbc.SyncBcMutex
+	wg sync.WaitGroup
 
+	snap uint64
+
+	ldb   *levelDB
 	state State
 }
 
@@ -28,37 +27,58 @@ func NewCollector() (*Collector, error) {
 		return nil, err
 	}
 	return &Collector{
-		ldb:   l,
-		state: xorstate.NewXorState(lenHash),
+		ldb:         l,
+		state:       xorstate.NewXorState(),
+		SyncBcMutex: *syncbc.NewSyncBc(),
 	}, nil
 }
 
 func (c *Collector) Snap() (values.Bytes, error) {
-	files, err := c.ldb.allFiles()
-	if err != nil {
-		return nil, err
-	}
-	ids := make([]values.Bytes, 0)
-	for _, f := range files {
-		ids = append(ids, f.Id)
-	}
-	usersWrap, err := c.ldb.getUsers()
-	if err != nil {
-		return nil, err
-	}
-	users := make([]*user.User, 0)
-	for _, uw := range usersWrap {
-		addr, err := user.ParseAddress(uw.Addr)
+	var (
+		exitChan = make(chan bool)
+		ids      = make([]values.Bytes, 0)
+	)
+	c.wg.Add(2)
+	go func() {
+		defer c.wg.Done()
+		c.Locking()
+		files, err := c.ldb.allFiles()
+		c.Unlock()
 		if err != nil {
-			return nil, err
+			exitChan <- true
+			return
 		}
-		users = append(users, &user.User{
-			Addr:    addr,
-			Balance: uint64(uw.Bal),
-		})
-	}
-	for _, u := range users {
-		ids = append(ids, u.Hash())
+		for _, f := range files {
+			ids = append(ids, f.Id)
+		}
+	}()
+	go func() {
+		defer c.wg.Done()
+		c.Locking()
+		usersWrap, err := c.ldb.getUsers()
+		c.Unlock()
+		if err != nil {
+			exitChan <- true
+			return
+		}
+		for i := 0; i < len(usersWrap); i++ {
+			addr, err := user.ParseAddress(usersWrap[i].Addr)
+			if err != nil {
+				exitChan <- true
+				return
+			}
+			u := &user.User{
+				Addr:    addr,
+				Balance: uint64(usersWrap[i].Bal),
+			}
+			ids = append(ids, u.Hash())
+		}
+	}()
+	c.wg.Wait()
+	select {
+	case <-exitChan:
+		return nil, fmt.Errorf("err parsing")
+	default:
 	}
 	return c.state.Get(ids...), nil
 }
@@ -91,4 +111,8 @@ func (c *Collector) AddBalance(address *user.Address, delta uint64) error {
 
 func (c *Collector) SubBalance(address *user.Address, delta uint64) error {
 	return c.ldb.subBalance(address.String(), delta)
+}
+
+func (c *Collector) RemoveFile(id values.Bytes) error {
+	return c.ldb.removeFileById(crypto.Base64EncodeString(id))
 }

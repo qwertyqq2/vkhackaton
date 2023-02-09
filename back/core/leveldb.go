@@ -2,6 +2,8 @@ package core
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/qwertyqq2/filebc/core/types"
@@ -54,6 +56,34 @@ func (l *levelDB) insertBlock(hash, block string) error {
 		block,
 	)
 	return err
+}
+
+func (l *levelDB) blockById(id uint64) (*types.Block, error) {
+	var pBlock string
+	row := l.db.QueryRow("Select Block from Blockchain where Id=$1", id)
+	err := row.Scan(&pBlock)
+	if err != nil {
+		return nil, err
+	}
+	b, err := types.DeserializeBlock(pBlock)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (l *levelDB) lastBlock() (*types.Block, error) {
+	var bs string
+	row := l.db.QueryRow("SELECT Block FROM Blockchain ORDER BY Id DESC")
+	err := row.Scan(&bs)
+	if err != nil {
+		fmt.Println(err)
+	}
+	block, err := types.DeserializeBlock(bs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return block, nil
 }
 
 func (l *levelDB) getBlocks() (types.Blocks, error) {

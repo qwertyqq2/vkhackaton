@@ -25,7 +25,7 @@ func makeNode(port uint16) nt.P2PNode {
 func main() {
 
 	sourcePort := flag.Int("p", 0, "Source port number")
-	list := flag.Bool("l", true, "listen or not")
+	list := flag.Bool("list", true, "listen or not")
 
 	flag.Parse()
 

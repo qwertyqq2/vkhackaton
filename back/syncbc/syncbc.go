@@ -32,3 +32,11 @@ func (sm *SyncBcMutex) Unlock() {
 		panic("alreay unlocked")
 	}
 }
+
+func (sm *SyncBcMutex) Locking() {
+	for {
+		if ok := sm.TryLock(); ok {
+			return
+		}
+	}
+}

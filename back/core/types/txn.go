@@ -10,6 +10,9 @@ import (
 	"github.com/qwertyqq2/filebc/core/types/transaction"
 )
 
+type Payload interface {
+}
+
 type Transaction interface {
 	SignTx(*user.User) error
 

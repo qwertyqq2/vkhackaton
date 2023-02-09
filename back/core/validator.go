@@ -18,15 +18,14 @@ var (
 )
 
 type validator struct {
-	bc *Blockchain
+	seed Seed
 
 	state values.Bytes
 }
 
-func newValidator(bc *Blockchain) *validator {
+func newValidator(s Seed) *validator {
 	return &validator{
-		bc:    bc,
-		state: bc.snap,
+		seed: s,
 	}
 }
 
@@ -44,7 +43,7 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 				return nil, fmt.Errorf("not enough tokens for post")
 			}
 			file := files.NewFile(string(tx.GetData()))
-			return validator.bc.coll.AddFile(state, file), nil
+			return validator.seed.AddFile(state, file), nil
 
 		case transaction.TypeTransferTx:
 			if !validator.validValue(tx.GetSender(), tx.GetValue()) {
@@ -58,11 +57,11 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 			if err != nil {
 				return nil, fmt.Errorf("nil receiver")
 			}
-			bal1, err := validator.bc.coll.Balance(sender)
+			bal1, err := validator.seed.Balance(sender)
 			if err != nil {
 				return nil, fmt.Errorf("something to do with balance sender")
 			}
-			bal2, err := validator.bc.coll.Balance(receiver)
+			bal2, err := validator.seed.Balance(receiver)
 			if err != nil {
 				return nil, fmt.Errorf("something to do with balance receiver")
 			}
@@ -74,7 +73,7 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 				Addr:    receiver,
 				Balance: bal2,
 			}
-			return validator.bc.coll.AddUser(state, u1, u2), nil
+			return validator.seed.AddUser(state, u1, u2), nil
 		}
 	}
 	return nil, nil
@@ -89,7 +88,7 @@ func (validator *validator) validMinReserveForPost(sender string) bool {
 	if err != nil {
 		return false
 	}
-	bal, err := validator.bc.coll.Balance(addr)
+	bal, err := validator.seed.Balance(addr)
 	if err != nil {
 		return false
 	}
@@ -101,7 +100,7 @@ func (validator *validator) validValue(sender string, value uint64) bool {
 	if err != nil {
 		return false
 	}
-	bal, err := validator.bc.coll.Balance(addr)
+	bal, err := validator.seed.Balance(addr)
 	if err != nil {
 		return false
 	}

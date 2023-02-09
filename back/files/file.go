@@ -60,7 +60,7 @@ func (f *File) Diff(maxsize int) int {
 	return int(s * 100 / maxsize)
 }
 
-func (f *File) SerializeFile() (string, error) {
+func (f *File) Serialize() (string, error) {
 	jsonData, err := json.MarshalIndent(*f, "", "\t")
 	if err != nil {
 		return "", err
@@ -68,7 +68,7 @@ func (f *File) SerializeFile() (string, error) {
 	return string(jsonData), nil
 }
 
-func DeserializeFile(fstr string) (*File, error) {
+func Deserialize(fstr string) (*File, error) {
 	var f File
 	err := json.Unmarshal([]byte(fstr), &f)
 	if err != nil {

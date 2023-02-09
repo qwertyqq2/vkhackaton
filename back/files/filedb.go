@@ -59,7 +59,7 @@ func LoadLevel() (*levelDB, error) {
 }
 
 func (l *levelDB) insertFile(f *File) error {
-	fstr, err := f.SerializeFile()
+	fstr, err := f.Serialize()
 	if err != nil {
 		return err
 	}
@@ -74,6 +74,11 @@ func (l *levelDB) insertFile(f *File) error {
 	return nil
 }
 
+func (l *levelDB) removeFileById(id string) error {
+	_, err := l.db.Exec("DELETE FROM Files WHERE Id=$1", id)
+	return err
+}
+
 func (l *levelDB) allFiles() ([]*File, error) {
 	fsarr, err := l.getFiles()
 	if err != nil {
@@ -81,7 +86,7 @@ func (l *levelDB) allFiles() ([]*File, error) {
 	}
 	files := make([]*File, 0)
 	for _, fs := range fsarr {
-		f, err := DeserializeFile(fs)
+		f, err := Deserialize(fs)
 		if err != nil {
 			return nil, err
 		}

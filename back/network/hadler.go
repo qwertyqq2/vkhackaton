@@ -3,7 +3,6 @@ package network
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -23,10 +22,17 @@ func handleStream(stream network.Stream) {
 }
 
 func readData(rw *bufio.ReadWriter, closed chan bool) {
+	buf := make([]byte, 40*1024)
 	for {
-		data, err := ioutil.ReadAll(rw)
+		n, err := rw.Read(buf)
 		if err != nil {
 			log.Println("Error reading from buffer")
+			closed <- true
+			break
+		}
+		data := buf[:n]
+		if data == nil {
+			log.Println("nil data")
 			closed <- true
 			break
 		}
@@ -58,6 +64,10 @@ func writeData(rw *bufio.ReadWriter, closed chan bool) {
 		data, err := Marhal(msg)
 		if err != nil {
 			log.Println(err)
+			break
+		}
+		if data == nil {
+			log.Println("nil data")
 			break
 		}
 		_, err = rw.Write(data)

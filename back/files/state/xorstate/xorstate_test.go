@@ -38,7 +38,7 @@ func TestState(t *testing.T) {
 			[]byte{},
 		))
 
-	s := NewXorState(len(id1))
+	s := NewXorState()
 
 	state := s.Get(id1, id2, id3)
 	fmt.Println(crypto.Base64EncodeString(state))

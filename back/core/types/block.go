@@ -6,7 +6,9 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/qwertyqq2/filebc/core/types/transaction"
 	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
 )
@@ -180,4 +182,19 @@ func (block *Block) TransactionsHash() values.Bytes {
 
 func (block *Block) Accepted() bool {
 	return block.accepted
+}
+
+func (block *Block) AllFiles() ([]*files.File, error) {
+	fs := make([]*files.File, 0)
+	for _, tx := range block.transactions {
+		switch tx.GetType() {
+		case transaction.TypePostTx:
+			f, err := files.Deserialize(string(tx.GetData()))
+			if err != nil {
+				return nil, err
+			}
+			fs = append(fs, f)
+		}
+	}
+	return fs, nil
 }

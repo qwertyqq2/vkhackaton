@@ -23,6 +23,7 @@ import (
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
@@ -65,6 +66,9 @@ type node struct {
 	addrs        []string
 	loaded       bool
 	boostrapInfo []peer.AddrInfo
+	streams      map[peer.ID]bool
+
+	msgChan chan *Message
 
 	kadDHT *dht.IpfsDHT
 
@@ -78,6 +82,8 @@ func NewNode(conf ConfigNode) P2PNode {
 	return &node{
 		host:       nil,
 		ConfigNode: conf,
+		msgChan:    make(chan *Message, 100),
+		streams:    make(map[peer.ID]bool),
 	}
 }
 
@@ -192,13 +198,13 @@ func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, go
 				if err != nil {
 					log.Printf("host failed to receive a relay reservation from relay. %v", err)
 				} else {
-					// _, err = client.Reserve(context.Background(), n.host, inf)
-					// if err != nil {
-					// 	log.Printf("host failed to receive a relay reservation from relay. %v", err)
-					// } else {
-					log.Println("Connection established with relay node")
-					it++
-					// }
+					_, err = client.Reserve(context.Background(), n.host, inf)
+					if err != nil {
+						log.Printf("host failed to receive a relay reservation from relay. %v", err)
+					} else {
+						log.Println("Connection established with relay node")
+						it++
+					}
 				}
 			}
 			n.Done()
@@ -270,22 +276,29 @@ func (n *node) Broadcast() error {
 		peerFindChan = make(chan peer.AddrInfo, 10)
 		goClose      = make(chan bool)
 	)
-	defer n.kadDHT.RoutingTable().Close()
 	log.Println("Boostrap go")
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(600*time.Second))
-	defer cancel()
+	defer func() {
+		cancel()
+		n.kadDHT.RoutingTable().Close()
+	}()
 	go n.boostrap(context.Background(), peerFindChan, goClose, false)
 	for !close {
 		select {
 		case <-ctx.Done():
 			close = true
 		case peer := <-peerFindChan:
+			if _, ok := n.streams[peer.ID]; ok {
+				break
+			}
+			n.streams[peer.ID] = true
 			go func() {
-				log.Println("Connecting to:", peer.ID)
+				defer delete(n.streams, peer.ID)
+				//log.Println("Connecting to:", peer.ID)
 				stream, err := n.host.NewStream(network.WithUseTransient(context.Background(),
 					n.ProtocolID), peer.ID, protocol.ID(n.ProtocolID))
 				if err != nil {
-					log.Println("err conn: ", err)
+					//log.Println("err conn: ", err)
 					return
 				} else {
 					log.Println("connection established with anouther peer!")

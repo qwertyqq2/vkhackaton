@@ -4,16 +4,20 @@ import (
 	"github.com/qwertyqq2/filebc/values"
 )
 
+const (
+	LenHash = 32
+)
+
 type XorState struct {
 	len  int
 	seed values.Bytes
 }
 
-func NewXorState(len int) *XorState {
-	seed := make([]byte, len)
+func NewXorState() *XorState {
+	seed := make([]byte, LenHash)
 	seed = values.HashSum([]byte("state"))
 	return &XorState{
-		len:  len,
+		len:  LenHash,
 		seed: seed,
 	}
 }

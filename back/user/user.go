@@ -36,6 +36,10 @@ func (u *User) Hash() values.Bytes {
 	return values.HashSum(u.Addr.Public().Bytes(), mcrypto.ToBytes(u.Balance))
 }
 
+func (u *User) Id() values.Bytes {
+	return u.Hash()
+}
+
 func (u *User) RingSignData(data []byte, pubs []*ring.PublicKey, round int) (*ring.Signature, error) {
 	sig, err := ring.SignRing(rand.Reader, data, pubs, round, u.pk)
 	if err != nil {
@@ -47,3 +51,28 @@ func (u *User) RingSignData(data []byte, pubs []*ring.PublicKey, round int) (*ri
 func (u *User) SignData(data []byte) (*ring.Sig, error) {
 	return ring.SignData(data, u.pk)
 }
+
+// func Marhal(msg *Message) ([]byte, error) {
+// 	return json.Marshal(struct {
+// 		Id      int
+// 		Payload []byte
+// 	}{
+// 		Id:      msg.Id,
+// 		Payload: msg.payload,
+// 	})
+// }
+
+// func Unmarhsal(d []byte) (*Message, error) {
+// 	unmarshalled := struct {
+// 		Id      int
+// 		Payload []byte
+// 	}{}
+// 	err := json.Unmarshal(d, &unmarshalled)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &Message{
+// 		Id:      unmarshalled.Id,
+// 		payload: unmarshalled.Payload,
+// 	}, nil
+// }

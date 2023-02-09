@@ -82,7 +82,7 @@ func initTransferTxs(creator *user.User, pkCreator *ring.PrivateKey, prevHash va
 }
 
 func initTransferBlock(creator *user.User, bc *Blockchain, txs []types.Transaction) (*types.Block, error) {
-	b := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.snap, creator.Addr)
+	b := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.lastSnap, creator.Addr)
 	b.InserTxs(txs...)
 	err := b.Accept(creator)
 	if err != nil {
