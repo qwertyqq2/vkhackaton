@@ -1,4 +1,6 @@
+### Start
 
+npm install -g create-react-app
 
 ### Necessary libraries
 
