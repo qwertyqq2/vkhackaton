@@ -33,24 +33,25 @@ type seed struct {
 	store map[string]interface{}
 	state *xorstate.XorState
 
+	bc   *Blockchain
+	snap values.Bytes
+
 	mu sync.Mutex
 }
 
-func NewSeed(snap values.Bytes) *seed {
+func NewSeed(bc *Blockchain) *seed {
 	return &seed{
 		store: map[string]interface{}{},
 		state: xorstate.NewXorState(),
+		bc:    bc,
 	}
 }
 
 func (s *seed) Snap() (values.Bytes, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	ids := make([]values.Bytes, 0)
-	for k := range s.store {
-		ids = append(ids, crypto.Base64DecodeString(k))
+	if s.snap == nil {
+		return nil, fmt.Errorf("nil snap seed")
 	}
-	return s.state.Get(ids...), nil
+	return s.snap, nil
 }
 
 func (s *seed) InsertFile(f *files.File) error {
@@ -68,7 +69,16 @@ func (s *seed) AddBalance(address *user.Address, delta uint64) error {
 	defer s.mu.Unlock()
 	u, ok := s.store[address.String()].(*user.User)
 	if !ok {
-		return fmt.Errorf("not exist such user")
+		bal, err := s.balance(address)
+		if err != nil {
+			return err
+		}
+		u := &user.User{
+			Addr:    address,
+			Balance: bal + delta,
+		}
+		s.store[address.String()] = u
+		return nil
 	}
 	u.Balance += delta
 	s.store[address.String()] = u
@@ -80,11 +90,31 @@ func (s *seed) SubBalance(address *user.Address, delta uint64) error {
 	defer s.mu.Unlock()
 	u, ok := s.store[address.String()].(*user.User)
 	if !ok {
-		return fmt.Errorf("not exist such user")
+		bal, err := s.balance(address)
+		if err != nil {
+			return err
+		}
+		u := &user.User{
+			Addr:    address,
+			Balance: bal - delta,
+		}
+		s.store[address.String()] = u
 	}
 	u.Balance -= delta
 	s.store[address.String()] = u
 	return nil
+}
+
+func (s *seed) balance(address *user.Address) (uint64, error) {
+	bal, err := s.bc.coll.Balance(address)
+	if err != nil {
+		return 0, nil
+	}
+	s.store[address.String()] = &user.User{
+		Addr:    address,
+		Balance: bal,
+	}
+	return bal, nil
 }
 
 func (s *seed) Balance(address *user.Address) (uint64, error) {
@@ -92,7 +122,7 @@ func (s *seed) Balance(address *user.Address) (uint64, error) {
 	defer s.mu.Unlock()
 	u, ok := s.store[address.String()].(*user.User)
 	if !ok {
-		return 0, fmt.Errorf("not exist such user")
+		return s.balance(address)
 	}
 	return u.Balance, nil
 }

@@ -22,8 +22,9 @@ type TxnPost struct {
 	PostId    values.Bytes `json:"postId"`
 	ToStorage uint64       `json:"toStorage"`
 	Hash      values.Bytes `json:"hashTx"`
-	Seed      values.Bytes `json:"seed"`
-	Signs     [][]byte     `json:"signs"`
+	// Seed      values.Bytes `json:"seed"`
+	// Signs     [][]byte     `json:"signs"`
+	Sign      values.Bytes `json:"sign"`
 	PrevBlock values.Bytes `json:"prevBlock"`
 	Data      values.Bytes `json:"data"`
 }
@@ -88,8 +89,11 @@ func (t *TxnPost) SignTx(u *user.User) error {
 		return err
 	}
 	t.Hash = h
-	t.Seed = ringSign.Seed
-	t.Signs = ringSign.Sings
+	smarsh, err := ringSign.Marshal()
+	if err != nil {
+		return err
+	}
+	t.Sign = smarsh
 	return nil
 }
 
@@ -106,7 +110,11 @@ func (t *TxnPost) signValid() bool {
 		}
 		senders[i] = s
 	}
-	return user.VeryfySignRing(t.Hash, senders, t.Seed, t.Signs)
+	ring, err := ring.UnmarshalRing(t.Sign)
+	if err != nil {
+		return false
+	}
+	return user.VeryfySignRing(t.Hash, senders, ring.Seed, ring.Sings)
 }
 
 func (t *TxnPost) GetData() values.Bytes {
@@ -152,14 +160,8 @@ func (t *TxnPost) Empty() error {
 	if t.Data == nil {
 		return fmt.Errorf("nil data post")
 	}
-	if len(t.Signs) == 0 {
-		return fmt.Errorf("nil len signs")
-	}
-
-	for _, s := range t.Signs {
-		if s == nil {
-			return fmt.Errorf("nil sign")
-		}
+	if t.Sign == nil {
+		return fmt.Errorf("nil sign")
 	}
 	if t.ToStorage == 0 {
 		return fmt.Errorf("nil storage")

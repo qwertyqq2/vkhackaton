@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/qwertyqq2/filebc/core/types/transaction"
@@ -14,7 +13,7 @@ import (
 )
 
 const (
-	Difficulty = 22
+	Difficulty = 10
 )
 
 type Block struct {
@@ -27,8 +26,7 @@ type Block struct {
 	Time      string       `json:"time"`
 	Miner     string       `json:"miner"`
 	Diff      uint8        `json:"diff"`
-	R         *big.Int     `json:"R"`
-	S         *big.Int     `json:"S"`
+	Sign      values.Bytes `json:"sign"`
 	TxsHash   values.Bytes `json:"txsHash"`
 
 	accepted     bool
@@ -37,14 +35,14 @@ type Block struct {
 
 type Blocks []*Block
 
-func NewBlock(prevNumber uint64, prevBlock, prevSnap values.Bytes, miner *user.Address) *Block {
+func NewBlock(prevNumber uint64, prevBlock, prevSnap values.Bytes, miner *user.Address, txs ...Transaction) *Block {
 	return &Block{
 		Number:       prevNumber + 1,
 		PrevBlock:    prevBlock,
 		PrevSnap:     prevSnap,
 		Miner:        miner.String(),
 		Diff:         Difficulty,
-		transactions: make([]Transaction, 0),
+		transactions: txs,
 		accepted:     false,
 	}
 }
@@ -60,12 +58,6 @@ func NewGenesisBLock(creator *user.Address) *Block {
 	gen.HashBlock = gen.hash()
 	gen.CurShap = gen.PrevSnap
 	return gen
-}
-
-func (b *Block) InserTxs(txs ...Transaction) {
-	for _, tx := range txs {
-		b.transactions = append(b.transactions, tx)
-	}
 }
 
 func (b *Block) txhash() values.Bytes {
@@ -108,8 +100,11 @@ func (b *Block) Accept(u *user.User) error {
 	if err != nil {
 		return err
 	}
-	b.R = s.R
-	b.S = s.S
+	smar, err := s.Marshal()
+	if err != nil {
+		return err
+	}
+	b.Sign = smar
 	proof, f := crypto.ProowOfWork(b.HashBlock, b.Diff, nil)
 	if !f {
 		return fmt.Errorf("Cant getting proof")
@@ -140,7 +135,7 @@ func (block *Block) EmptyBlock() error {
 	if block.CurShap == nil || block.HashBlock == nil || block.PrevBlock == nil {
 		return fmt.Errorf("nil hash")
 	}
-	if block.R.Cmp(big.NewInt(0)) == -1 || block.S.Cmp(big.NewInt(0)) == -1 {
+	if block.Sign == nil {
 		return fmt.Errorf("nil sign")
 	}
 	if block.Number == 0 {

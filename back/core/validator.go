@@ -23,6 +23,8 @@ type validator struct {
 	state values.Bytes
 }
 
+var ()
+
 func newValidator(s Seed) *validator {
 	return &validator{
 		seed: s,

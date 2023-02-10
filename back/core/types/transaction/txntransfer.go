@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"math/big"
 
 	"github.com/qwertyqq2/filebc/crypto/ring"
 	"github.com/qwertyqq2/filebc/user"
@@ -21,8 +20,7 @@ type TxnTransfer struct {
 	Value     uint64       `json:"value"`
 	ToStorage uint64       `json:"toStorage"`
 	Hash      values.Bytes `json:"hashTx"`
-	R         *big.Int     `json:"R"`
-	S         *big.Int     `json:"S"`
+	Sign      values.Bytes `json:"sign"`
 	PrevBlock values.Bytes `json:"prevBlock"`
 }
 
@@ -65,8 +63,11 @@ func (t *TxnTransfer) SignTx(u *user.User) error {
 		return err
 	}
 	t.Hash = h
-	t.R = sign.R
-	t.S = sign.S
+	smarsh, err := sign.Marshal()
+	if err != nil {
+		return err
+	}
+	t.Sign = smarsh
 	return nil
 }
 
@@ -79,10 +80,11 @@ func (t *TxnTransfer) signValid(senderstr string) bool {
 	if err != nil {
 		return false
 	}
-	return ring.VerifySign(t.Hash, &ring.Sig{
-		R: t.R,
-		S: t.S,
-	}, sender.Public())
+	rign, err := ring.UnmarshalSign(t.Sign)
+	if err != nil {
+		return false
+	}
+	return ring.VerifySign(t.Hash, rign, sender.Public())
 }
 
 func (t *TxnTransfer) GetData() values.Bytes {
@@ -130,7 +132,7 @@ func (t *TxnTransfer) Empty() error {
 	if t.Value == 0 {
 		return fmt.Errorf("nil value")
 	}
-	if t.R.Cmp(big.NewInt(0)) == -1 || t.S.Cmp(big.NewInt(0)) == -1 {
+	if t.Sign == nil {
 		return fmt.Errorf("nil sign")
 	}
 	if t.ToStorage == 0 {

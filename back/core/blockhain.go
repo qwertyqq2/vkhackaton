@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/qwertyqq2/filebc/core/types"
 	"github.com/qwertyqq2/filebc/core/types/transaction"
@@ -18,6 +17,7 @@ import (
 type ConfBc struct {
 	MinToken   uint64 `json:"minTokens"`
 	InitTokens uint64 `json:"initTokens"`
+	MaxBlocks  uint
 }
 
 func DefaultConf() *ConfBc {
@@ -28,15 +28,17 @@ func DefaultConf() *ConfBc {
 }
 
 type Blockchain struct {
-	conf          *ConfBc
-	coll          *files.Collector
-	dblevel       *levelDB
+	conf    *ConfBc
+	coll    *files.Collector
+	dblevel *levelDB
+
 	lastNumber    uint64
 	lastBlock     *types.Block
 	lastHashBlock values.Bytes
 	flashInterval uint64
 	lastSnap      values.Bytes
-	genesisBlock  *types.Block
+
+	genesisBlock *types.Block
 
 	sm *syncbc.SyncBcMutex
 	wg sync.WaitGroup
@@ -103,10 +105,126 @@ func (bc *Blockchain) loadLastState() error {
 	return nil
 }
 
-func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
+func needReorgBlocks(blocks types.Blocks) bool {
+	for i := 1; i < len(blocks); i++ {
+		if blocks[i].Number-blocks[i-1].Number < 0 {
+			return true
+		}
+		if !bytes.Equal(blocks[i].PrevBlock, blocks[i-1].HashBlock) {
+			return true
+		}
+		if !bytes.Equal(blocks[i].PrevSnap, blocks[i-1].CurShap) {
+			return true
+		}
+	}
+	return false
+}
+
+func reorgBlocks(blocks types.Blocks) (types.Blocks, error) {
+	var (
+		resBlocks = make([]*types.Block, len(blocks))
+		it        = 0
+		n         = len(blocks)
+		idx       int
+	)
+	for i, b := range blocks {
+		if b.Number >= blocks[idx].Number {
+			idx = i
+		}
+	}
+	resBlocks[n-it-1] = blocks[idx]
+	it++
+	for it < len(blocks) {
+		num := 0
+		for i, b := range blocks {
+			if b.Number < blocks[num].Number && blocks[num].Number < blocks[idx].Number {
+				num = i
+			}
+		}
+		if blocks[idx].Number-blocks[num].Number > 1 {
+			return nil, fmt.Errorf("incorrect numbers in given chain")
+		}
+		resBlocks[n-it-1] = blocks[num]
+		it++
+		idx = num
+	}
+	for i := 1; i < len(resBlocks); i++ {
+		if !bytes.Equal(resBlocks[i].PrevBlock, resBlocks[i-1].HashBlock) {
+			return nil, fmt.Errorf("incorrect hashes in given chain")
+		}
+		if !bytes.Equal(resBlocks[i].PrevSnap, resBlocks[i-1].CurShap) {
+			return nil, fmt.Errorf("incorrect snaps in given chain")
+		}
+	}
+	return resBlocks, nil
+}
+
+func (bc *Blockchain) insertTxsLevelDb(errChan chan error, txs ...types.Transaction) error {
+	for _, tx := range txs {
+		bc.wg.Add(1)
+		go func(tx types.Transaction) {
+			defer bc.wg.Done()
+			switch tx.GetType() {
+			case transaction.TypePostTx:
+				err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
+				if err != nil {
+					errChan <- err
+					return
+				}
+			case transaction.TypeTransferTx:
+				sender, err := user.ParseAddress(tx.GetSender())
+				if err != nil {
+					errChan <- err
+					return
+				}
+				err = bc.coll.SubBalance(sender, tx.GetValue())
+				if err != nil {
+					errChan <- err
+					return
+				}
+				receiver, err := user.ParseAddress(tx.GetReceiver())
+				if err != nil {
+					errChan <- err
+					return
+				}
+				err = bc.coll.AddBalance(receiver, tx.GetValue())
+				if err != nil {
+					errChan <- err
+					return
+				}
+			}
+		}(tx)
+	}
+	bc.wg.Wait()
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		return nil
+	}
+}
+
+func (bc *Blockchain) InsertChain(blocks ...*types.Block) error {
 	if len(blocks) == 0 {
 		return fmt.Errorf("nil blocks")
 	}
+
+	var regBlocks = make(types.Blocks, len(blocks))
+
+	if needReorgBlocks(blocks) {
+		rg, err := reorgBlocks(blocks)
+		if err != nil {
+			return err
+		}
+		copy(regBlocks, rg)
+	} else {
+		copy(regBlocks, blocks)
+	}
+
+	if !bytes.Equal(regBlocks[0].PrevBlock, bc.lastHashBlock) || regBlocks[0].Number != bc.lastNumber+1 {
+		return fmt.Errorf("its not next block")
+	}
+
 	for i := 1; i < len(blocks); i++ {
 		cur, prev := blocks[i], blocks[i-1]
 		if cur.Number != prev.Number+1 || !bytes.Equal(cur.PrevBlock, prev.HashBlock) ||
@@ -114,6 +232,7 @@ func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
 			return fmt.Errorf("incorrect base data block")
 		}
 	}
+
 	var (
 		n       = len(blocks)
 		errChan chan error
@@ -143,10 +262,10 @@ func (bc *Blockchain) InsertChain(blocks types.Blocks) error {
 		return fmt.Errorf("Chain is stopped")
 	}
 	defer bc.sm.Unlock()
-	return bc.insertChain(blocks)
+	return bc.insertChain(blocks...)
 }
 
-func (bc *Blockchain) insertChain(blocks types.Blocks) error {
+func (bc *Blockchain) insertChain(blocks ...*types.Block) error {
 	var (
 		block   *types.Block
 		errChan = make(chan error)
@@ -160,7 +279,7 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("last snap", crypto.Base64EncodeString(snap))
 	snap, err = validator.add(snap, fblock.Transactions()...)
 	if err != nil {
 		return err
@@ -171,10 +290,23 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 			return err
 		}
 	}
+	fmt.Println("new snap", crypto.Base64EncodeString(snap))
 
 	iterChain.back()
-
 	block, _ = iterChain.next()
+
+	serblock, err := block.SerializeBlock()
+	if err != nil {
+		return err
+	}
+	err = bc.dblevel.insertBlock(crypto.Base64EncodeString(block.HashBlock), serblock)
+	if err != nil {
+		return err
+	}
+	if err := bc.insertTxsLevelDb(errChan, block.Transactions()...); err != nil {
+		return err
+	}
+
 	for ; err != nil && block != nil; block, err = iterChain.next() {
 		serblock, err := block.SerializeBlock()
 		if err != nil {
@@ -184,49 +316,46 @@ func (bc *Blockchain) insertChain(blocks types.Blocks) error {
 		if err != nil {
 			return err
 		}
-		for _, tx := range block.Transactions() {
-			bc.wg.Add(1)
-			go func(tx types.Transaction) {
-				defer bc.wg.Done()
-				switch tx.GetType() {
-				case transaction.TypePostTx:
-					err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
-					if err != nil {
-						errChan <- err
-						return
-					}
-				case transaction.TypeTransferTx:
-					sender, err := user.ParseAddress(tx.GetSender())
-					if err != nil {
-						errChan <- err
-						return
-					}
-					err = bc.coll.SubBalance(sender, tx.GetValue())
-					if err != nil {
-						errChan <- err
-						return
-					}
-					receiver, err := user.ParseAddress(tx.GetReceiver())
-					if err != nil {
-						errChan <- err
-						return
-					}
-					err = bc.coll.AddBalance(receiver, tx.GetValue())
-					if err != nil {
-						errChan <- err
-						return
-					}
-				}
-			}(tx)
-		}
-		bc.wg.Wait()
-		select {
-		case err := <-errChan:
+		if err := bc.insertTxsLevelDb(errChan, block.Transactions()...); err != nil {
 			return err
-		default:
 		}
 	}
 	return bc.loadLastState()
+}
+
+func (bc *Blockchain) insertRewindChain(seed Seed, txs ...types.Transaction) error {
+	for _, tx := range txs {
+		switch tx.GetType() {
+		case transaction.TypeTransferTx:
+			sender, err := user.ParseAddress(tx.GetSender())
+			if err != nil {
+				return err
+			}
+			err = seed.AddBalance(sender, tx.GetValue())
+			if err != nil {
+				return err
+			}
+			receiver, err := user.ParseAddress(tx.GetReceiver())
+			if err != nil {
+				return err
+			}
+			err = seed.SubBalance(receiver, tx.GetValue())
+			if err != nil {
+				return err
+			}
+
+		case transaction.TypePostTx:
+			file, err := files.Deserialize(string(tx.GetData()))
+			if err != nil {
+				return err
+			}
+			if err := seed.RemoveFile(file.Id); err != nil {
+				return err
+			}
+
+		}
+	}
+	return nil
 }
 
 func (bc *Blockchain) rewindChain(idx uint64) error {
@@ -241,105 +370,40 @@ func (bc *Blockchain) rewindChain(idx uint64) error {
 	if lastId < idx {
 		return fmt.Errorf("id not less last")
 	}
+
 	for i = lastId; i >= idx; i++ {
 		block, err := bc.dblevel.blockById(i)
 		if err != nil {
 			return err
 		}
-		for _, tx := range block.Transactions() {
-			switch tx.GetType() {
-			case transaction.TypeTransferTx:
-				sender, err := user.ParseAddress(tx.GetSender())
-				if err != nil {
-					return err
-				}
-				err = bc.coll.AddBalance(sender, tx.GetValue())
-				if err != nil {
-					return err
-				}
-				receiver, err := user.ParseAddress(tx.GetReceiver())
-				if err != nil {
-					return err
-				}
-				err = bc.coll.SubBalance(receiver, tx.GetValue())
-				if err != nil {
-					return err
-				}
-
-			case transaction.TypePostTx:
-				file, err := files.Deserialize(string(tx.GetData()))
-				if err != nil {
-					return err
-				}
-				if err := bc.coll.RemoveFile(file.Id); err != nil {
-					return err
-				}
-
-			}
+		if err := bc.insertRewindChain(bc.coll, block.Transactions()...); err != nil {
+			return err
 		}
 	}
 	return bc.loadLastState()
-}
-
-func needReorgBlocks(blocks types.Blocks) bool {
-	for i := 1; i < len(blocks); i++ {
-		if blocks[i].Number-blocks[i-1].Number < 0 {
-			return true
-		}
-		if !bytes.Equal(blocks[i].PrevBlock, blocks[i-1].HashBlock) {
-			return true
-		}
-		if !bytes.Equal(blocks[i].PrevSnap, blocks[i-1].CurShap) {
-			return true
-		}
-	}
-	return false
-}
-
-func reorgBlocks(blocks types.Blocks) (types.Blocks, error) {
-	var (
-		curNumber uint64
-		resBlocks = make([]*types.Block, len(blocks))
-		it        = 0
-		n         = len(blocks)
-	)
-	for _, b := range blocks {
-		if b.Number >= curNumber {
-			curNumber = b.Number
-		}
-	}
-	resBlocks[n-it] = blocks[curNumber]
-	it++
-	for it < len(blocks) {
-		num := uint64(0)
-		for _, b := range blocks {
-			if b.Number > num && b.Number < curNumber {
-				num = b.Number
-			}
-		}
-		if curNumber-num > 1 {
-			return nil, fmt.Errorf("incorrect numbers in given chain")
-		}
-		resBlocks[n-it] = blocks[num]
-		it++
-		curNumber = num
-	}
-	for i := 1; i < len(resBlocks); i++ {
-		if !bytes.Equal(resBlocks[i].PrevBlock, resBlocks[i-1].HashBlock) {
-			return nil, fmt.Errorf("incorrect hashes in given chain")
-		}
-		if !bytes.Equal(resBlocks[i].PrevSnap, resBlocks[i-1].CurShap) {
-			return nil, fmt.Errorf("incorrect snaps in given chain")
-		}
-	}
-	return resBlocks, nil
 }
 
 func (bc *Blockchain) needRollbackChain(blocks types.Blocks) bool {
 	if bc.lastNumber >= blocks[0].Number {
 		return false
 	}
-	return bc.lastNumber-blocks[0].Number > uint64(len(blocks))
+	if bc.lastNumber-blocks[0].Number > uint64(len(blocks)) {
+		return false
+	}
+	b, err := bc.dblevel.blockById(blocks[0].Number)
+	if err != nil {
+		return false
+	}
+	if !bytes.Equal(b.HashBlock, blocks[0].HashBlock) {
+		return false
+	}
+	if !bytes.Equal(b.PrevBlock, blocks[0].PrevBlock) {
+		return false
+	}
+	if !bytes.Equal(b.CurShap, blocks[0].CurShap) {
+		return false
+	}
+	return true
 }
 
 func (bc *Blockchain) syntheticRewindChain(idx uint64, seed Seed) error {
@@ -355,37 +419,10 @@ func (bc *Blockchain) syntheticRewindChain(idx uint64, seed Seed) error {
 		if err != nil {
 			return err
 		}
-		for _, tx := range block.Transactions() {
-			switch tx.GetType() {
-			case transaction.TypeTransferTx:
-				sender, err := user.ParseAddress(tx.GetSender())
-				if err != nil {
-					return err
-				}
-				err = seed.AddBalance(sender, tx.GetValue())
-				if err != nil {
-					return err
-				}
-				receiver, err := user.ParseAddress(tx.GetReceiver())
-				if err != nil {
-					return err
-				}
-				err = seed.SubBalance(receiver, tx.GetValue())
-				if err != nil {
-					return err
-				}
-
-			case transaction.TypePostTx:
-				file, err := files.Deserialize(string(tx.GetData()))
-				if err != nil {
-					return err
-				}
-				if err := seed.RemoveFile(file.Id); err != nil {
-					return err
-				}
-
-			}
+		if err := bc.insertRewindChain(seed, block.Transactions()...); err != nil {
+			return err
 		}
+
 	}
 	return nil
 }
@@ -393,8 +430,7 @@ func (bc *Blockchain) syntheticRewindChain(idx uint64, seed Seed) error {
 func (bc *Blockchain) RollbackChain(blocks types.Blocks) error {
 	var (
 		rgBlocks = make([]*types.Block, len(blocks))
-		//n        = len(blocks)
-		//seed     = NewSeed(bc.lastSnap)
+		seed     = NewSeed(bc)
 	)
 	if needReorgBlocks(blocks) {
 		rb, err := reorgBlocks(blocks)
@@ -402,83 +438,47 @@ func (bc *Blockchain) RollbackChain(blocks types.Blocks) error {
 			return err
 		}
 		_ = copy(rgBlocks, rb)
+	} else {
+		copy(rgBlocks, blocks)
 	}
 	if !bc.needRollbackChain(rgBlocks) {
 		return fmt.Errorf("rollback dont need")
 	}
-	rewindBlocks := make([]*types.Block, bc.lastNumber) /// Отсюда!!!!!
-	rewindBlocks = rewindBlocks
-	//add valid given blocks
-	// fs := make([]*files.File, 0)
-	// for i := 0; i < n; i++ {
-	// 	fsInBlock, err := blocks[i].AllFiles()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	fs = append(fs, fsInBlock...)
-	// }
-	if err := bc.rewindChain(rgBlocks[0].Number); err != nil {
-		return fmt.Errorf("rewind chain err")
+	if err := bc.syntheticRewindChain(rgBlocks[0].Number, seed); err != nil {
+		return fmt.Errorf("synth rewind err")
 	}
-	return nil
-}
 
-func (bc *Blockchain) AddBlock(u *user.User, txs ...types.Transaction) (*types.Block, error) {
+	snap := rgBlocks[0].CurShap
+
+	iterChain := newIterator(blocks)
 	validator := newValidator(bc.coll)
+	block, _ := iterChain.next()
+
 	snap, err := bc.coll.Snap()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	for _, tx := range txs {
-		snap, err = validator.add(snap, tx)
+
+	snap, err = validator.add(snap, block.Transactions()...)
+	if err != nil {
+		return err
+	}
+	for ; err != nil && block != nil; block, err = iterChain.next() {
+		snap, err = validator.add(snap, block.Transactions()...)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	block := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.lastSnap, u.Addr)
-	block.InserTxs(txs...)
-	if err := block.Accept(u); err != nil {
-		return nil, err
+
+	if err := bc.rewindChain(blocks[0].Number); err != nil {
+		return fmt.Errorf("rewind chain err")
 	}
-	block.CurShap = snap
-	block.Time = time.Now().Format(time.RFC3339)
-	serblock, err := block.SerializeBlock()
-	if err != nil {
-		return nil, err
+
+	ok := bc.sm.TryLock()
+	if !ok {
+		return fmt.Errorf("Chain is stopped")
 	}
-	err = bc.dblevel.insertBlock(crypto.Base64EncodeString(block.HashBlock), serblock)
-	if err != nil {
-		return nil, err
-	}
-	for _, tx := range block.Transactions() {
-		switch tx.GetType() {
-		case transaction.TypePostTx:
-			err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
-			if err != nil {
-				return nil, err
-			}
-		case transaction.TypeTransferTx:
-			sender, err := user.ParseAddress(tx.GetSender())
-			if err != nil {
-				return nil, err
-			}
-			err = bc.coll.SubBalance(sender, tx.GetValue())
-			if err != nil {
-				return nil, err
-			}
-			receiver, err := user.ParseAddress(tx.GetReceiver())
-			if err != nil {
-				return nil, err
-			}
-			err = bc.coll.AddBalance(receiver, tx.GetValue())
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	bc.lastHashBlock = block.HashBlock
-	bc.lastBlock = block
-	bc.lastNumber = block.Number
-	bc.lastSnap = snap
-	return block, nil
+	defer bc.sm.Unlock()
+	return bc.insertChain(blocks...)
+
 }
