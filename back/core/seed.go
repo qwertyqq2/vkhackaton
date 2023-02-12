@@ -14,7 +14,11 @@ import (
 type Seed interface {
 	Snap() (values.Bytes, error)
 
-	Balance(address *user.Address) (uint64, error)
+	State() files.State
+
+	Add(values.Bytes, ...values.Bytes) values.Bytes
+
+	Balance(address *user.Address) (uint64, bool, error)
 
 	InsertFile(file *files.File) error
 
@@ -54,6 +58,10 @@ func (s *seed) Snap() (values.Bytes, error) {
 	return s.snap, nil
 }
 
+func (s *seed) State() files.State {
+	return nil
+}
+
 func (s *seed) InsertFile(f *files.File) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -69,7 +77,7 @@ func (s *seed) AddBalance(address *user.Address, delta uint64) error {
 	defer s.mu.Unlock()
 	u, ok := s.store[address.String()].(*user.User)
 	if !ok {
-		bal, err := s.balance(address)
+		bal, _, err := s.balance(address)
 		if err != nil {
 			return err
 		}
@@ -90,7 +98,7 @@ func (s *seed) SubBalance(address *user.Address, delta uint64) error {
 	defer s.mu.Unlock()
 	u, ok := s.store[address.String()].(*user.User)
 	if !ok {
-		bal, err := s.balance(address)
+		bal, _, err := s.balance(address)
 		if err != nil {
 			return err
 		}
@@ -105,26 +113,26 @@ func (s *seed) SubBalance(address *user.Address, delta uint64) error {
 	return nil
 }
 
-func (s *seed) balance(address *user.Address) (uint64, error) {
-	bal, err := s.bc.coll.Balance(address)
+func (s *seed) balance(address *user.Address) (uint64, bool, error) {
+	bal, _, err := s.bc.coll.Balance(address)
 	if err != nil {
-		return 0, nil
+		return 0, false, nil
 	}
 	s.store[address.String()] = &user.User{
 		Addr:    address,
 		Balance: bal,
 	}
-	return bal, nil
+	return bal, true, nil
 }
 
-func (s *seed) Balance(address *user.Address) (uint64, error) {
+func (s *seed) Balance(address *user.Address) (uint64, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	u, ok := s.store[address.String()].(*user.User)
 	if !ok {
 		return s.balance(address)
 	}
-	return u.Balance, nil
+	return u.Balance, true, nil
 }
 
 func (s *seed) RemoveFile(id values.Bytes) error {
@@ -144,6 +152,13 @@ func (s *seed) AddUser(snapState values.Bytes, users ...*user.User) values.Bytes
 func (s *seed) AddFile(snapState values.Bytes, fs ...*files.File) values.Bytes {
 	for _, f := range fs {
 		snapState = s.state.Add(snapState, f.Id)
+	}
+	return snapState
+}
+
+func (s *seed) Add(snapState values.Bytes, dn ...values.Bytes) values.Bytes {
+	for _, d := range dn {
+		snapState = s.state.Add(snapState, d)
 	}
 	return snapState
 }

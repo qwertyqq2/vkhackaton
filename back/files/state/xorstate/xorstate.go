@@ -22,10 +22,15 @@ func NewXorState() *XorState {
 	}
 }
 
-func (s *XorState) Add(state values.Bytes, data values.Bytes) values.Bytes {
+func (s *XorState) Add(state values.Bytes, data ...values.Bytes) values.Bytes {
 	res := make([]byte, s.len)
 	for i, d := range state {
-		res[i] = d ^ data[i]
+		res[i] = d ^ data[0][i]
+	}
+	for i := 1; i < len(data); i++ {
+		for j, d := range res {
+			res[j] = d ^ data[i][j]
+		}
 	}
 	return res
 }
@@ -36,4 +41,8 @@ func (s *XorState) Get(data ...values.Bytes) values.Bytes {
 		res = s.Add(res, d)
 	}
 	return res
+}
+
+func (s *XorState) Inverse(data values.Bytes) values.Bytes {
+	return data
 }

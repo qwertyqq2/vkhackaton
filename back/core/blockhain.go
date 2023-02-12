@@ -177,12 +177,13 @@ func (bc *Blockchain) insertTxsLevelDb(errChan chan error, txs ...types.Transact
 					errChan <- err
 					return
 				}
-				err = bc.coll.SubBalance(sender, tx.GetValue())
+				receiver, err := user.ParseAddress(tx.GetReceiver())
 				if err != nil {
 					errChan <- err
 					return
 				}
-				receiver, err := user.ParseAddress(tx.GetReceiver())
+
+				err = bc.coll.SubBalance(sender, tx.GetValue())
 				if err != nil {
 					errChan <- err
 					return
@@ -279,22 +280,25 @@ func (bc *Blockchain) insertChain(blocks ...*types.Block) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("last snap", crypto.Base64EncodeString(snap))
 	snap, err = validator.add(snap, fblock.Transactions()...)
 	if err != nil {
 		return err
+	}
+	if !bytes.Equal(snap, fblock.CurShap) {
+		return fmt.Errorf("incorrect snap")
 	}
 	for ; err != nil && block != nil; block, err = iterChain.next() {
 		snap, err = validator.add(snap, block.Transactions()...)
 		if err != nil {
 			return err
 		}
+		if !bytes.Equal(snap, block.CurShap) {
+			return fmt.Errorf("incorrect snap")
+		}
 	}
-	fmt.Println("new snap", crypto.Base64EncodeString(snap))
 
 	iterChain.back()
 	block, _ = iterChain.next()
-
 	serblock, err := block.SerializeBlock()
 	if err != nil {
 		return err

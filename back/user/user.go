@@ -24,6 +24,13 @@ func NewUser(pk *ring.PrivateKey) *User {
 	}
 }
 
+func GetUser(a *Address, bal uint64) *User {
+	return &User{
+		Addr:    a,
+		Balance: bal,
+	}
+}
+
 func (u *User) Address() *Address {
 	return u.Addr
 }

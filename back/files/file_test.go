@@ -98,7 +98,7 @@ func TestGetBalance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bal, err := l.getBalance(u1.Addr.String())
+	bal, _, err := l.getBalance(u1.Addr.String())
 	if err != nil {
 		t.Fatal(err)
 	}

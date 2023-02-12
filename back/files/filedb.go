@@ -2,6 +2,7 @@ package files
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -135,8 +136,12 @@ func (l *levelDB) existUser(address string) bool {
 
 func (l *levelDB) addBalance(address string, delta uint64) error {
 	if l.existUser(address) {
-		_, err := l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
-			int(delta),
+		bal, _, err := l.getBalance(address)
+		if err != nil {
+			return err
+		}
+		_, err = l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
+			int(bal+delta),
 			address,
 		)
 		return err
@@ -154,34 +159,30 @@ func (l *levelDB) addBalance(address string, delta uint64) error {
 
 func (l *levelDB) subBalance(address string, delta uint64) error {
 	if l.existUser(address) {
-		_, err := l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
-			int(-delta),
+		bal, _, err := l.getBalance(address)
+		if err != nil {
+			return err
+		}
+		_, err = l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
+			bal-delta,
 			address,
 		)
 		return err
 	}
-	err := l.newUser(address)
-	if err != nil {
-		return err
-	}
-	_, err = l.db.Exec("Update Users Set Balance=$1 Where Address=$2;",
-		int(delta),
-		address,
-	)
-	return err
+	return fmt.Errorf("sub balance for unexist user err")
 }
 
-func (l *levelDB) getBalance(address string) (uint64, error) {
+func (l *levelDB) getBalance(address string) (uint64, bool, error) {
 	if !l.existUser(address) {
-		return 0, nil
+		return 0, false, nil
 	}
 	row := l.db.QueryRow("Select Balance From Users Where Address=$1", address)
 	var user wrapper
 	err := row.Scan(&user.Bal)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
-	return uint64(user.Bal), nil
+	return uint64(user.Bal), true, nil
 }
 
 func (l *levelDB) getUsers() ([]wrapper, error) {

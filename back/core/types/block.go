@@ -56,7 +56,6 @@ func NewGenesisBLock(creator *user.Address) *Block {
 		Time:      time.Now().Format(time.RFC3339),
 	}
 	gen.HashBlock = gen.hash()
-	gen.CurShap = gen.PrevSnap
 	return gen
 }
 
