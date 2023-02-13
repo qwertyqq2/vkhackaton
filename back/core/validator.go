@@ -117,7 +117,7 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 			}
 
 			if exSender && !exReceiver {
-				invd := validator.seed.State().Inverse(u1.Hash())
+				invd := validator.seed.State().Inverse(user.GetUser(sender, balSender).Hash())
 				state = validator.seed.Add(state, invd)
 				state = validator.seed.AddUser(state, user.GetUser(sender, balSender-tx.GetValue()),
 					user.GetUser(receiver, balReceiver+tx.GetValue()))
