@@ -1,12 +1,14 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/qwertyqq2/filebc/core/types/transaction"
 	"github.com/qwertyqq2/filebc/crypto"
+	"github.com/qwertyqq2/filebc/crypto/ring"
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
@@ -14,6 +16,9 @@ import (
 
 const (
 	Difficulty = 10
+
+	GenPrevblock = "GenBlock"
+	GenPrevSnap  = "GenSnap"
 )
 
 type Block struct {
@@ -47,7 +52,7 @@ func NewBlock(prevNumber uint64, prevBlock, prevSnap values.Bytes, miner *user.A
 	}
 }
 
-func NewGenesisBLock(creator *user.Address) *Block {
+func NewGenesisBLock(creator *user.Address, initValue uint64) *Block {
 	gen := &Block{
 		Number:    1,
 		PrevBlock: []byte("GenBlock"),
@@ -55,6 +60,17 @@ func NewGenesisBLock(creator *user.Address) *Block {
 		Miner:     creator.String(),
 		Time:      time.Now().Format(time.RFC3339),
 	}
+
+	pk := ring.GeneratePrivate()
+	unsender := user.NewUser(pk)
+
+	initTx, err := transaction.NewTxTransfer(unsender, []byte("GenBlock"), creator, initValue)
+	if err != nil {
+		return nil
+	}
+	txs := make([]Transaction, 0)
+	txs = append(txs, initTx)
+	gen.transactions = txs
 	gen.HashBlock = gen.hash()
 	return gen
 }
@@ -110,6 +126,25 @@ func (b *Block) Accept(u *user.User) error {
 	}
 	b.Proof = proof
 	b.accepted = true
+	return nil
+}
+
+func (gen *Block) AcceptGenesis(u *user.User) error {
+	if gen.accepted {
+		return fmt.Errorf("block already accepted")
+	}
+	gen.TxsHash = gen.txhash()
+	gen.HashBlock = gen.hash()
+	s, err := u.SignData(gen.HashBlock)
+	if err != nil {
+		return err
+	}
+	smar, err := s.Marshal()
+	if err != nil {
+		return err
+	}
+	gen.Sign = smar
+	gen.accepted = true
 	return nil
 }
 
@@ -191,4 +226,9 @@ func (block *Block) AllFiles() ([]*files.File, error) {
 		}
 	}
 	return fs, nil
+}
+
+// sign block verify !
+func (b *Block) Valid() bool {
+	return bytes.Equal(b.HashBlock, b.hash())
 }

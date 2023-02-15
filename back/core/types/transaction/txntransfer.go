@@ -26,7 +26,7 @@ type TxnTransfer struct {
 
 func NewTxTransfer(sender *user.User, prevHash values.Bytes, receiver *user.Address, value uint64) (*TxnTransfer, error) {
 	rand := crypto.GenerateRandom()
-	toStorage := uint64(1 * value / 10)
+	toStorage := uint64(0)
 	tx := &TxnTransfer{
 		Type:      TypeTransferTx,
 		Rand:      rand,
@@ -135,9 +135,9 @@ func (t *TxnTransfer) Empty() error {
 	if t.Sign == nil {
 		return fmt.Errorf("nil sign")
 	}
-	if t.ToStorage == 0 {
-		return fmt.Errorf("nil storage")
-	}
+	// if t.ToStorage == 0 {
+	// 	return fmt.Errorf("nil storage")
+	// }
 	if t.Hash == nil {
 		return fmt.Errorf("nil hash ")
 	}

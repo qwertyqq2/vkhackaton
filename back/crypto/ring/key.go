@@ -67,6 +67,16 @@ func ParsePrivate(pks string) *PrivateKey {
 	}
 }
 
+func (pk *PrivateKey) Marshal() []byte {
+	return pk.d
+}
+
+func UnmarshalPrivate(d []byte) *PrivateKey {
+	return &PrivateKey{
+		d: d,
+	}
+}
+
 func GeneratePrivate() *PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {

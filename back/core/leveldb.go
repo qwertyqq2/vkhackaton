@@ -17,13 +17,13 @@ type levelDB struct {
 	db *sql.DB
 }
 
-func NewLevelDB() (*levelDB, error) {
-	fileDb, err := os.Create(DbName)
+func NewLevelDB(uname string) (*levelDB, error) {
+	fileDb, err := os.Create(DbName + uname)
 	if err != nil {
 		return nil, err
 	}
 	fileDb.Close()
-	db, err := sql.Open("sqlite3", DbName)
+	db, err := sql.Open("sqlite3", DbName+uname)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +40,8 @@ func NewLevelDB() (*levelDB, error) {
 	return &levelDB{db: db}, nil
 }
 
-func loadLevel() (*levelDB, error) {
-	db, err := sql.Open("sqlite3", DbName)
+func loadLevel(uname string) (*levelDB, error) {
+	db, err := sql.Open("sqlite3", DbName+uname)
 	if err != nil {
 		return nil, err
 	}

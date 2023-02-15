@@ -7,7 +7,7 @@ import (
 )
 
 type iterator struct {
-	blocks types.Blocks
+	blocks []*types.Block
 
 	index int
 }

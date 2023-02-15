@@ -11,7 +11,7 @@ import (
 )
 
 func TestCollector(t *testing.T) {
-	c, err := NewCollector()
+	c, err := NewCollector("1")
 	if err != nil {
 		t.Fatal(err)
 	}

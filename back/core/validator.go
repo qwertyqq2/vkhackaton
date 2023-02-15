@@ -12,7 +12,7 @@ import (
 	"github.com/qwertyqq2/filebc/values"
 )
 
-var (
+const (
 	MinPostSize     = 100
 	MaxPostSize     = 10000
 	MinTokenReserve = 50
@@ -22,8 +22,7 @@ var (
 type validator struct {
 	seed Seed
 
-	v map[string]values.Bytes
-
+	v     map[string]values.Bytes
 	state values.Bytes
 }
 
@@ -37,10 +36,12 @@ func newValidator(s Seed) *validator {
 func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (values.Bytes, error) {
 
 	var (
-		sender      *user.Address
-		receiver    *user.Address
-		exSender    bool
-		exReceiver  bool
+		sender   *user.Address
+		receiver *user.Address
+
+		exSender   bool
+		exReceiver bool
+
 		balSender   uint64
 		balReceiver uint64
 	)
@@ -122,12 +123,14 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 				state = validator.seed.AddUser(state, user.GetUser(sender, balSender-tx.GetValue()),
 					user.GetUser(receiver, balReceiver+tx.GetValue()))
 			}
+
 			if !exSender && exReceiver {
 				invd := validator.seed.State().Inverse(u2.Hash())
 				state = validator.seed.Add(state, invd)
 				state = validator.seed.AddUser(state, user.GetUser(sender, balSender-tx.GetValue()),
 					user.GetUser(receiver, balReceiver+tx.GetValue()))
 			}
+
 			if exSender && exReceiver {
 				invn := validator.seed.State().Inverse(u1.Hash())
 				invd := validator.seed.State().Inverse(u2.Hash())
@@ -141,7 +144,7 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 			}
 
 			validator.v[sender.String()] = crypto.ToBytes(balSender - tx.GetValue())
-			validator.v[receiver.String()] = crypto.ToBytes(balSender + tx.GetValue())
+			validator.v[receiver.String()] = crypto.ToBytes(balReceiver + tx.GetValue())
 
 		}
 	}

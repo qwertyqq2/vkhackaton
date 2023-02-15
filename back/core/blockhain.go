@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/qwertyqq2/filebc/core/types"
@@ -15,8 +16,8 @@ import (
 )
 
 type ConfBc struct {
-	MinToken   uint64 `json:"minTokens"`
-	InitTokens uint64 `json:"initTokens"`
+	MinToken   uint64
+	InitTokens uint64
 	MaxBlocks  uint
 }
 
@@ -44,18 +45,19 @@ type Blockchain struct {
 	wg sync.WaitGroup
 }
 
-func NewBlockchain(creator *user.Address) (*Blockchain, error) {
-	coll, err := files.NewCollector()
+func NewBlockchainWithGenesis(creator *user.User) (*Blockchain, error) {
+	var uname = creator.Address().String()[:2]
+	coll, err := files.NewCollector(uname)
 	if err != nil {
 		return nil, err
 	}
 	conf := DefaultConf()
-	ldb, err := NewLevelDB()
+	ldb, err := NewLevelDB(uname)
 	if err != nil {
 		return nil, err
 	}
-	genesis := types.NewGenesisBLock(creator)
-	err = coll.AddBalance(creator, conf.InitTokens)
+	genesis := types.NewGenesisBLock(creator.Address(), conf.InitTokens)
+	err = coll.AddBalance(creator.Address(), conf.InitTokens)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +66,16 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 		return nil, err
 	}
 	genesis.CurShap = snap
+	if err := genesis.AcceptGenesis(creator); err != nil {
+		return nil, err
+	}
 	bc := &Blockchain{
 		conf:          conf,
 		coll:          coll,
 		dblevel:       ldb,
-		lastNumber:    uint64(0),
+		lastNumber:    uint64(1),
 		flashInterval: uint64(0),
-		lastHashBlock: values.Bytes("first"),
+		lastHashBlock: genesis.HashBlock,
 		lastSnap:      snap,
 		genesisBlock:  genesis,
 		wg:            sync.WaitGroup{},
@@ -86,6 +91,114 @@ func NewBlockchain(creator *user.Address) (*Blockchain, error) {
 	bc.lastNumber = 1
 	bc.lastBlock = genesis
 	bc.lastHashBlock = genesis.HashBlock
+	return bc, nil
+}
+
+func LoadBlockchain(addr *user.Address) (*Blockchain, error) {
+
+	var uname = addr.String()[:2]
+	coll, err := files.LoadCollector(uname)
+	if err != nil {
+		return nil, err
+	}
+	l, err := loadLevel(uname)
+	if err != nil {
+		return nil, err
+	}
+	snap, err := coll.Snap()
+	if err != nil {
+		return nil, err
+	}
+	lastBlock, err := l.lastBlock()
+	if err != nil {
+		return nil, err
+	}
+	return &Blockchain{
+		conf:          DefaultConf(),
+		coll:          coll,
+		dblevel:       l,
+		lastNumber:    lastBlock.Number,
+		flashInterval: uint64(0),
+		lastHashBlock: lastBlock.HashBlock,
+		lastSnap:      snap,
+		wg:            sync.WaitGroup{},
+		sm:            syncbc.NewSyncBc(),
+	}, nil
+}
+
+func NewBlockchainExternal(client *user.Address, blocks ...*types.Block) (*Blockchain, error) {
+	var regBlocks = make(types.Blocks, len(blocks))
+
+	if needReorgBlocks(blocks) {
+		rg, err := reorgBlocks(blocks)
+		if err != nil {
+			return nil, err
+		}
+		copy(regBlocks, rg)
+	} else {
+		copy(regBlocks, blocks)
+	}
+
+	gen := regBlocks[0]
+	addrCreator, err := user.ParseAddress(gen.Miner)
+	if err != nil {
+		return nil, err
+	}
+
+	coll, err := files.NewCollector(client.String()[:2])
+	if err != nil {
+		return nil, err
+	}
+	conf := DefaultConf()
+	ldb, err := NewLevelDB(client.String()[:2])
+	if err != nil {
+		return nil, err
+	}
+	valGen := gen.Transactions()[0].GetValue()
+	if err := coll.AddBalance(addrCreator, valGen); err != nil {
+		return nil, err
+	}
+	curSnap, err := coll.Snap()
+	if err != nil {
+		return nil, err
+	}
+
+	if !bytes.Equal(gen.CurShap, curSnap) || !bytes.Equal(gen.PrevBlock, []byte(types.GenPrevblock)) || !bytes.Equal(gen.PrevSnap, []byte(types.GenPrevSnap)) {
+		return nil, fmt.Errorf("gen valid err")
+	}
+
+	if !gen.Valid() {
+		return nil, fmt.Errorf("gen hash valid err")
+	}
+	bc := &Blockchain{
+		conf:          conf,
+		coll:          coll,
+		dblevel:       ldb,
+		lastNumber:    uint64(1),
+		flashInterval: uint64(0),
+		lastHashBlock: gen.HashBlock,
+		lastSnap:      curSnap,
+		genesisBlock:  gen,
+		wg:            sync.WaitGroup{},
+		sm:            syncbc.NewSyncBc(),
+	}
+
+	sergenblock, err := gen.SerializeBlock()
+	if err != nil {
+		return nil, err
+	}
+	if err := bc.dblevel.insertBlock(crypto.Base64EncodeString(gen.HashBlock), sergenblock); err != nil {
+		return nil, err
+	}
+	bc.lastNumber = gen.Number
+	bc.lastBlock = gen
+	bc.lastHashBlock = gen.HashBlock
+	if len(regBlocks[1:]) == 0 {
+		return bc, nil
+	}
+	if err := bc.InsertChain(regBlocks[1:]...); err != nil {
+		return nil, err
+	}
 	return bc, nil
 }
 
@@ -123,31 +236,37 @@ func needReorgBlocks(blocks types.Blocks) bool {
 func reorgBlocks(blocks types.Blocks) (types.Blocks, error) {
 	var (
 		resBlocks = make([]*types.Block, len(blocks))
-		it        = 0
-		n         = len(blocks)
-		idx       int
+		// it, idx   = 0, 0
+		// n         = len(blocks)
 	)
-	for i, b := range blocks {
-		if b.Number >= blocks[idx].Number {
-			idx = i
-		}
-	}
-	resBlocks[n-it-1] = blocks[idx]
-	it++
-	for it < len(blocks) {
-		num := 0
-		for i, b := range blocks {
-			if b.Number < blocks[num].Number && blocks[num].Number < blocks[idx].Number {
-				num = i
-			}
-		}
-		if blocks[idx].Number-blocks[num].Number > 1 {
-			return nil, fmt.Errorf("incorrect numbers in given chain")
-		}
-		resBlocks[n-it-1] = blocks[num]
-		it++
-		idx = num
-	}
+	// for _, b := range blocks {
+	// 	fmt.Println(b.Number)
+	// }
+	// for i, b := range blocks {
+	// 	if b.Number >= blocks[idx].Number {
+	// 		idx = i
+	// 	}
+	// }
+	copy(resBlocks, blocks)
+	// resBlocks[n-it-1] = blocks[idx]
+	// it++
+	// for it < len(blocks) {
+	// 	num := 0
+	// 	for i, b := range blocks {
+	// 		if b.Number > blocks[num].Number && b.Number < blocks[idx].Number {
+	// 			num = i
+	// 		}
+	// 	}
+	// 	if blocks[idx].Number-blocks[num].Number > 1 {
+	// 		return nil, fmt.Errorf("incorrect numbers in given chain")
+	// 	}
+	// 	resBlocks[n-it-1] = blocks[num]
+	// 	it++
+	// 	idx = num
+	// }
+	sort.SliceStable(resBlocks, func(i, j int) bool {
+		return resBlocks[i].Number < resBlocks[j].Number
+	})
 	for i := 1; i < len(resBlocks); i++ {
 		if !bytes.Equal(resBlocks[i].PrevBlock, resBlocks[i-1].HashBlock) {
 			return nil, fmt.Errorf("incorrect hashes in given chain")
@@ -159,50 +278,36 @@ func reorgBlocks(blocks types.Blocks) (types.Blocks, error) {
 	return resBlocks, nil
 }
 
-func (bc *Blockchain) insertTxsLevelDb(errChan chan error, txs ...types.Transaction) error {
+func (bc *Blockchain) insertTxsLevelDb(txs ...types.Transaction) error {
 	for _, tx := range txs {
-		bc.wg.Add(1)
-		go func(tx types.Transaction) {
-			defer bc.wg.Done()
-			switch tx.GetType() {
-			case transaction.TypePostTx:
-				err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
-				if err != nil {
-					errChan <- err
-					return
-				}
-			case transaction.TypeTransferTx:
-				sender, err := user.ParseAddress(tx.GetSender())
-				if err != nil {
-					errChan <- err
-					return
-				}
-				receiver, err := user.ParseAddress(tx.GetReceiver())
-				if err != nil {
-					errChan <- err
-					return
-				}
-
-				err = bc.coll.SubBalance(sender, tx.GetValue())
-				if err != nil {
-					errChan <- err
-					return
-				}
-				err = bc.coll.AddBalance(receiver, tx.GetValue())
-				if err != nil {
-					errChan <- err
-					return
-				}
+		switch tx.GetType() {
+		case transaction.TypePostTx:
+			err := bc.coll.InsertFile(files.NewFile(string(tx.GetData())))
+			if err != nil {
+				return err
 			}
-		}(tx)
+		case transaction.TypeTransferTx:
+			sender, err := user.ParseAddress(tx.GetSender())
+			if err != nil {
+				return err
+			}
+			receiver, err := user.ParseAddress(tx.GetReceiver())
+			if err != nil {
+				return err
+			}
+
+			err = bc.coll.SubBalance(sender, tx.GetValue())
+			if err != nil {
+				return err
+			}
+			err = bc.coll.AddBalance(receiver, tx.GetValue())
+			if err != nil {
+				return err
+			}
+
+		}
 	}
-	bc.wg.Wait()
-	select {
-	case err := <-errChan:
-		return err
-	default:
-		return nil
-	}
+	return nil
 }
 
 func (bc *Blockchain) InsertChain(blocks ...*types.Block) error {
@@ -267,27 +372,24 @@ func (bc *Blockchain) InsertChain(blocks ...*types.Block) error {
 }
 
 func (bc *Blockchain) insertChain(blocks ...*types.Block) error {
-	var (
-		block   *types.Block
-		errChan = make(chan error)
-	)
 
-	iterChain := newIterator(blocks)
-	validator := newValidator(bc.coll)
-	fblock, _ := iterChain.next()
+	var (
+		block     *types.Block
+		iterChain = newIterator(blocks)
+		validator = newValidator(bc.coll)
+		snap      values.Bytes
+	)
 
 	snap, err := bc.coll.Snap()
 	if err != nil {
 		return err
 	}
-	snap, err = validator.add(snap, fblock.Transactions()...)
+	block, err = iterChain.next()
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(snap, fblock.CurShap) {
-		return fmt.Errorf("incorrect snap")
-	}
-	for ; err != nil && block != nil; block, err = iterChain.next() {
+
+	for ; err == nil && block != nil; block, err = iterChain.next() {
 		snap, err = validator.add(snap, block.Transactions()...)
 		if err != nil {
 			return err
@@ -298,20 +400,11 @@ func (bc *Blockchain) insertChain(blocks ...*types.Block) error {
 	}
 
 	iterChain.back()
-	block, _ = iterChain.next()
-	serblock, err := block.SerializeBlock()
+	block, err = iterChain.next()
 	if err != nil {
 		return err
 	}
-	err = bc.dblevel.insertBlock(crypto.Base64EncodeString(block.HashBlock), serblock)
-	if err != nil {
-		return err
-	}
-	if err := bc.insertTxsLevelDb(errChan, block.Transactions()...); err != nil {
-		return err
-	}
-
-	for ; err != nil && block != nil; block, err = iterChain.next() {
+	for ; err == nil && block != nil; block, err = iterChain.next() {
 		serblock, err := block.SerializeBlock()
 		if err != nil {
 			return err
@@ -320,7 +413,7 @@ func (bc *Blockchain) insertChain(blocks ...*types.Block) error {
 		if err != nil {
 			return err
 		}
-		if err := bc.insertTxsLevelDb(errChan, block.Transactions()...); err != nil {
+		if err := bc.insertTxsLevelDb(block.Transactions()...); err != nil {
 			return err
 		}
 	}
@@ -389,25 +482,25 @@ func (bc *Blockchain) rewindChain(idx uint64) error {
 
 func (bc *Blockchain) needRollbackChain(blocks types.Blocks) bool {
 	if bc.lastNumber >= blocks[0].Number {
-		return false
+		return true
 	}
 	if bc.lastNumber-blocks[0].Number > uint64(len(blocks)) {
-		return false
+		return true
 	}
 	b, err := bc.dblevel.blockById(blocks[0].Number)
 	if err != nil {
-		return false
+		return true
 	}
 	if !bytes.Equal(b.HashBlock, blocks[0].HashBlock) {
-		return false
+		return true
 	}
 	if !bytes.Equal(b.PrevBlock, blocks[0].PrevBlock) {
-		return false
+		return true
 	}
 	if !bytes.Equal(b.CurShap, blocks[0].CurShap) {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 func (bc *Blockchain) syntheticRewindChain(idx uint64, seed Seed) error {
@@ -431,7 +524,7 @@ func (bc *Blockchain) syntheticRewindChain(idx uint64, seed Seed) error {
 	return nil
 }
 
-func (bc *Blockchain) RollbackChain(blocks types.Blocks) error {
+func (bc *Blockchain) RollbackChain(blocks ...*types.Block) error {
 	var (
 		rgBlocks = make([]*types.Block, len(blocks))
 		seed     = NewSeed(bc)
@@ -474,7 +567,7 @@ func (bc *Blockchain) RollbackChain(blocks types.Blocks) error {
 		}
 	}
 
-	if err := bc.rewindChain(blocks[0].Number); err != nil {
+	if err := bc.rewindChain(rgBlocks[0].Number); err != nil {
 		return fmt.Errorf("rewind chain err")
 	}
 
@@ -483,6 +576,6 @@ func (bc *Blockchain) RollbackChain(blocks types.Blocks) error {
 		return fmt.Errorf("Chain is stopped")
 	}
 	defer bc.sm.Unlock()
-	return bc.insertChain(blocks...)
+	return bc.insertChain(rgBlocks...)
 
 }

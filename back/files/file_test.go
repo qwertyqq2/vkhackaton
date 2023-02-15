@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateDb(t *testing.T) {
-	l, err := NewLevelDB()
+	l, err := NewLevelDB("1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestCreateDb(t *testing.T) {
 }
 
 func TestGetBalance(t *testing.T) {
-	l, err := NewLevelDB()
+	l, err := NewLevelDB("1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestGetFiles(t *testing.T) {
-	l, err := LoadLevel()
+	l, err := LoadLevel("qwe")
 	if err != nil {
 		t.Fatal(err)
 	}
