@@ -1,0 +1,21 @@
+.comment {
+    display: grid;
+
+    grid-template-areas:
+    "l r";
+}
+
+.commentatorImg {
+    grid-area: l;
+}
+
+.commentatorImg img {
+    border-radius: 50%;
+}
+
+.commentatorText {
+    grid-area: r;
+    margin: 10px;
+    padding-left: 5%;
+    border: 1px solid grey;
+}

@@ -5,6 +5,10 @@
     border-radius: 5%;
 }
 
+.post.hidden {
+    display: none;
+}
+
 a {
     text-decoration: none;
     color: black;
@@ -45,6 +49,8 @@ a {
     "c c c";
 
     padding: 10px;
+    background-color: #F6F6F6;
+    border-radius: 25px;
 }
 
 .likeButton img {

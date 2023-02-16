@@ -1,0 +1,39 @@
+.comments {
+    padding: 15px;
+
+    display: grid;
+    grid-template-areas:
+        "u"
+        "d";
+
+    /* grid-template-rows: 60px 1fr 1fr; */
+    /* grid-template-columns: 4fr 7fr 4fr; */
+    grid-gap: 10px;
+}
+
+.comment {
+    grid-area: u;
+    margin: 5%;
+}
+
+.createComment {
+    grid-area: d;
+
+    display: grid;
+    grid-template-areas:
+        "l r";
+}
+
+.textArea {
+    grid-area: l;
+    padding-left: 15%;
+}
+
+.arrow {
+    grid-area: r;
+}
+
+.arrow img {
+    width: 30px;
+    height: 30px;
+}

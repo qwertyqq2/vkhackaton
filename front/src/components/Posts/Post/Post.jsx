@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import s from './Post.module.css';
 import parse, { domToReact } from 'html-react-parser';
 import Comments from './Comments/Comments';
@@ -16,11 +16,11 @@ const Post = (props) => {
     const html = props.source;
 
     const options = {
-        replace: ({attribs, children}) => {
+        replace: ({ attribs, children }) => {
             if (!attribs) {
                 return;
             }
-    
+
             if (attribs.class === 'title') {
                 return (
                     <div className={s.title}>{domToReact(children, options)}</div>
@@ -35,6 +35,18 @@ const Post = (props) => {
         }
     };
 
+    const [showCommentElement, setShowCommentElement] = useState(false);
+
+    const handleButtonClick = () => {
+        setShowCommentElement(!showCommentElement);
+    }
+
+    const [likeElement, setLikeElement] = useState(true);
+
+    const handleLikeClick = () => {
+        setLikeElement(!likeElement);
+    }
+
     return (
         <div className={s.post}>
             <div className={s.postName + ' ' + s.content}>
@@ -45,19 +57,27 @@ const Post = (props) => {
             </div>
             <div className={s.hl} />
             <div className={s.buttons}>
-                <div className={s.likeButton}>
-                    <img src='like-button.png' alt='' />
+                <div className={s.likeButton} onClick={handleLikeClick}>
+                    {likeElement ? (
+                        <img src='like.png' alt='' />
+                    ) : 
+                    (
+                        <img src='like_active.png' alt='' />
+                    )}
                 </div>
-                <div className={s.commentButton}>
+                <div className={s.commentButton} onClick={handleButtonClick}>
                     <img src='comment.png' alt='' />
                 </div>
                 <div className={s.arrow_back}>
-                    <NavLink to=''><img src='back_arrow.png' alt='' /></NavLink>
+                    <NavLink to='*'><img src='arrow_back.png' alt='' /></NavLink>
                 </div>
             </div>
-            <div className={s.comments}>
-                <Comments />
-            </div>
+            {showCommentElement && (
+                <div className={s.comments}>
+                    <Comments />
+                </div>
+            )}
+
         </div>
     );
 }
