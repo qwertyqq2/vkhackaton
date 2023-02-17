@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import classes from './Create.module.css';
+import s from './Create.module.css';
 
 const Create = () => {
 
@@ -55,23 +55,39 @@ const Create = () => {
     };
 
     return (
-        <div>
+        <div className={s.createPost}>
             <form onSubmit={handleSubmit}>
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" onChange={handleInputChange} /><br />
+                <div className={s.postName}>
+                    <label for="name">Name:</label><br />
+                    <input type="text" id="name" name="name" onChange={handleInputChange} /><br />
+                </div>
 
-                <label for="message">Message:</label>
-                <textarea id="message" name="message" onChange={handleInputChange} ></textarea><br />
+                <div className={s.postContent}>
+                    <label for="message">Message:</label><br />
+                    <textarea id="message" name="message" onChange={handleInputChange} ></textarea><br />
+                </div>
 
-                <label for="interests">Interests:</label>
-                <input type="checkbox" id="Minting" name="interests" value="Minting" onChange={handleInputChange} />
-                <label for="Minting">Minting</label>
-                <input type="checkbox" id="Blockhain" name="interests" value="Blockhain" onChange={handleInputChange} />
-                <label for="Blockhain">Blockhain</label>
-                <input type="checkbox" id="Economics" name="interests" value="Economics" onChange={handleInputChange}/>
-                <label for="Economics">Economics</label><br />
+                <div className={s.hz}>
+                    <label for="interests">Interests:</label>
+                    <ul>
+                        <li>
+                            <input type="checkbox" id="Minting" name="interests" value="Minting" onChange={handleInputChange} />
+                            <label for="Minting">Minting</label>
+                        </li>
+                        <li>
+                            <input type="checkbox" id="Blockhain" name="interests" value="Blockhain" onChange={handleInputChange} />
+                            <label for="Blockhain">Blockhain</label>
+                        </li>
+                        <li>
+                            <input type="checkbox" id="Economics" name="interests" value="Economics" onChange={handleInputChange} />
+                            <label for="Economics">Economics</label><br />
+                        </li>
+                    </ul>
+                </div>
 
-                <input type="submit" value="Submit" onChange={handleInputChange} />
+                <div className={s.submit}>
+                    <input type="submit" value="Submit" onChange={handleInputChange} />
+                </div>
             </form>
         </div>
     );

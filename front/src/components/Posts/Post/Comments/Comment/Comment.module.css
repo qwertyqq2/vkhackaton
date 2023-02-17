@@ -3,6 +3,8 @@
 
     grid-template-areas:
     "l r";
+
+    padding-top: 10px;
 }
 
 .commentatorImg {
@@ -15,7 +17,7 @@
 
 .commentatorText {
     grid-area: r;
-    margin: 10px;
+    margin: 5px;
     padding-left: 5%;
-    border: 1px solid grey;
+    /* border: 1px solid grey; */
 }

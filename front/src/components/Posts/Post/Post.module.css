@@ -58,6 +58,8 @@ a {
 
     width: 30px;
     height: 30px;
+
+    cursor: pointer;
 }
 
 .commentButton img {
@@ -65,6 +67,8 @@ a {
 
     width: 30px;
     height: 30px;
+
+    cursor: pointer;
 }
 
 .arrow_back img {

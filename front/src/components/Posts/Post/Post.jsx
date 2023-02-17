@@ -4,13 +4,13 @@ import parse, { domToReact } from 'html-react-parser';
 import Comments from './Comments/Comments';
 import { NavLink } from 'react-router-dom';
 
-const PostItem = (props) => {
-    return (
-        <div className={s.postItem + ' ' + s.active}>
-            <NavLink to={"/post/" + props.id}><Post /></NavLink>
-        </div>
-    );
-}
+// const PostItem = (props) => {
+//     return (
+//         <div className={s.postItem + ' ' + s.active}>
+//             <NavLink to={"/post/" + props.id}><Post /></NavLink>
+//         </div>
+//     );
+// }
 
 const Post = (props) => {
     const html = props.source;
@@ -41,19 +41,13 @@ const Post = (props) => {
         setShowCommentElement(!showCommentElement);
     }
 
-    const [likeElement, setLikeElement] = useState(true);
-
-    const handleLikeClick = () => {
-        setLikeElement(!likeElement);
-    }
-
     return (
         <div className={s.post}>
             <div className={s.postName + ' ' + s.content}>
                 {parse(html, options)}
             </div>
             <div className={s.imageContainer}>
-                <img src='testpic.png' alt='' />
+                <img src='testpic2.png' alt='' />
             </div>
             <div className={s.hl} />
             <div className={s.buttons}>

@@ -1,7 +1,7 @@
 ### Necessary libraries
 
-npm i raw-loader --save \
-npm i html-react-parser --save \
+npm i raw-loader --save
+npm i html-react-parser --save
 npm i react-router-dom --save
 
 ### `npm start`

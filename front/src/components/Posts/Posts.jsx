@@ -16,18 +16,21 @@ const Posts = (props) => {
 
     const handleLikeClick = () => {
         setLikeElement(!likeElement);
+        props.likes.likePressed = likeElement;
+        console.log("handler:", likeElement);
+        console.log(props.likes.likePressed);
     }
-
-    // console.log(visibleElement);
 
     return (
         <div className={s.posts}>
             {props.htmlContent.map((item, ind) =>
                 <PrePost
-                    source={item} 
-                    index={ind + 1} 
+                    source={item}
+                    index={ind + 1}
                     isVisible={{ v: visibleElement, h: handleVisibleElement }}
-                    isLikePressed={{ l: likeElement, h: handleLikeClick }} />
+                    isLikePressed={{ l: likeElement, h: handleLikeClick }}
+                    likeCount={props.likeCount}
+                    likes={props.likes} />
             )}
 
             <Routes>
@@ -38,12 +41,11 @@ const Posts = (props) => {
                             comments={props.comments}
                             postId={index + 1}
                             isVisible={{ v: visibleElement, h: handleVisibleElement }}
-                            isLikePressed={{ l: likeElement, h: handleLikeClick }} />} />
+                            isLikePressed={{ l: likeElement, h: handleLikeClick }}
+                            likeCount={props.likeCount}
+                            likes={props.likes} />} />
                 )}
-                {/* <Route path='/post' element={<Post source={html} />} /> */}
-                {/* className={!visibleElement ? '' : (' ' + s.hidden)} */}
             </Routes>
-
         </div>
     );
 }

@@ -12,10 +12,10 @@ const Profile = (props) => {
                 <div className={classes.avatarDesc}>
                     <ul>
                         <li>
-                            <p>Город: </p>
+                            <p>Город: {props.account[0].city}</p>
                         </li>
                         <li>
-                            <p>Возраст: </p>
+                            <p>Возраст: {props.account[0].age}</p>
                         </li>
                     </ul>
                 </div>

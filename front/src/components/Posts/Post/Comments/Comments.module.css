@@ -13,7 +13,7 @@
 
 .comment {
     grid-area: u;
-    margin: 5%;
+    margin: 0;
 }
 
 .createComment {
@@ -22,6 +22,8 @@
     display: grid;
     grid-template-areas:
         "l r";
+
+    padding-top: 10px;
 }
 
 .textArea {

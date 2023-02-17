@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import s from "./Post.module.css";
 import parse, { domToReact } from 'html-react-parser';
 import { NavLink } from "react-router-dom";
@@ -41,6 +41,7 @@ const PrePost = (props) => {
                     (
                         <img src='like_active.png' alt='' />
                     )}
+                    {props.likeCount.count}
                 </div>
             </div>
         </div>

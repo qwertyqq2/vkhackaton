@@ -10,7 +10,12 @@ let rerenderEntireTree = (state) => {
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(
     <React.StrictMode>
-      <App htmlContent={state.getHtmlContent} comments={state.comments}/>
+      <App 
+      htmlContent={state.getHtmlContent} 
+      comments={state.comments} 
+      likeCount={state.likeCount}
+      likes={state.likes} 
+      account={state.account} />
     </React.StrictMode>
   );
 }

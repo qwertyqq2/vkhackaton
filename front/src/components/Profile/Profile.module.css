@@ -39,6 +39,10 @@
     
 }
 
+.avatar .avatarDesc li {
+    list-style-type: none;
+}
+
 .description {
     grid-area: d;
     padding-top: 15px;
