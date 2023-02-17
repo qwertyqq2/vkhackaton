@@ -36,6 +36,8 @@ const (
 	SendBlocks
 	GetTx
 	SendTx
+	GetText
+	SendText
 )
 
 type handler struct {
@@ -53,33 +55,6 @@ func NewHandler(n *Node) handler {
 	}
 }
 
-func (h *handler) send(conn Conn, msgId int, payload []byte) {
-	msg := network.NewMessage(msgId, payload)
-	conn.In <- msg
-}
-
-func (h *handler) Send(msgId int, payload []byte) error {
-	var (
-		timeout = 300 * time.Second
-	)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("timeout sending")
-		}
-		for _, conn := range h.conns {
-			if conn.Pending {
-				h.send(conn, msgId, payload)
-				go h.hand(conn)
-				return nil
-			}
-		}
-	}
-	return nil
-}
-
 func (h *handler) listen() error {
 	for {
 		for _, conn := range h.conns {
@@ -91,10 +66,32 @@ func (h *handler) listen() error {
 	}
 }
 
+func (h *handler) send(msgId int, payload []byte) error {
+	var (
+		timeout = 300 * time.Second
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout sending")
+		default:
+		}
+		for _, conn := range h.conns {
+			if conn.Pending {
+				msg := network.NewMessage(msgId, payload)
+				conn.In <- msg
+				go h.hand(conn)
+				return nil
+			}
+		}
+	}
+}
+
 func (h *handler) hand(c Conn) error {
 	for {
 		select {
-
 		case msg := <-c.Out:
 			if network.IsNilMessage(msg) {
 				return nil
@@ -127,6 +124,17 @@ func (h *handler) hand(c Conn) error {
 					log.Println(err)
 					return err
 				}
+				c.In <- network.NilMessage()
+				return nil
+
+			case GetText:
+				msg := network.NewMessage(SendText, []byte("прив"))
+				c.In <- msg
+
+			case SendText:
+				fmt.Println("Text here")
+				c.In <- network.NilMessage()
+				return nil
 
 			default:
 				return fmt.Errorf("undefined msg")

@@ -25,6 +25,7 @@ func (h Handler) run(s network.Stream) {
 
 func (h Handler) handler(pend bool) func(s network.Stream) {
 	return func(s network.Stream) {
+		log.Println("Стрим прищел")
 		defer delete(h.conns, s.ID())
 		h.conns[s.ID()] = NewConn(pend)
 		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
@@ -39,7 +40,7 @@ func (h Handler) read(rw *bufio.ReadWriter, streamId string) {
 		n, err := rw.Read(buf)
 		if err != nil {
 			log.Println("Error reading from buffer")
-			h.conns[streamId].In <- NilMessage()
+			h.conns[streamId].Out <- NilMessage()
 			return
 		}
 		data := buf[:n]
@@ -56,14 +57,14 @@ func (h Handler) read(rw *bufio.ReadWriter, streamId string) {
 			log.Println("nil msg")
 			return
 		}
-		h.conns[streamId].In <- msg
+		h.conns[streamId].Out <- msg
 	}
 }
 
 func (h Handler) write(rw *bufio.ReadWriter, streamId string) {
 	for {
 		select {
-		case m := <-h.conns[streamId].Out:
+		case m := <-h.conns[streamId].In:
 			mar, err := Marhal(m)
 			if err != nil {
 				return
@@ -72,6 +73,9 @@ func (h Handler) write(rw *bufio.ReadWriter, streamId string) {
 				return
 			}
 			if err := rw.Flush(); err != nil {
+				return
+			}
+			if IsNilMessage(m) {
 				return
 			}
 		}

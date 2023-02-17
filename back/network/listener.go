@@ -22,7 +22,6 @@ import (
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
-	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
@@ -111,7 +110,7 @@ func (n *node) ID() peer.ID {
 
 func (n *node) Init(ctx context.Context) error {
 	nodeAddrStrings := []string{fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", n.Port)}
-	repo, err := repo.Open("node-pk" + strconv.Itoa(int(n.Port)))
+	repo, err := repo.Open("node-libp2p-pk" + strconv.Itoa(int(n.Port)))
 	if err != nil {
 		return err
 	}
@@ -212,13 +211,13 @@ func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, go
 				if err != nil {
 					log.Printf("host failed to receive a relay reservation from relay. %v", err)
 				} else {
-					_, err = client.Reserve(context.Background(), n.host, inf)
-					if err != nil {
-						log.Printf("host failed to receive a relay reservation from relay. %v", err)
-					} else {
-						log.Println("Connection established with relay node")
-						it++
-					}
+					// _, err = client.Reserve(context.Background(), n.host, inf)
+					// if err != nil {
+					// 	log.Printf("host failed to receive a relay reservation from relay. %v", err)
+					// } else {
+					log.Println("Connection established with relay node")
+					it++
+					//}
 				}
 			}
 			n.Done()
@@ -312,7 +311,7 @@ func (n *node) Broadcast() error {
 				stream, err := n.host.NewStream(network.WithUseTransient(context.Background(),
 					n.ProtocolID), peer.ID, protocol.ID(n.ProtocolID))
 				if err != nil {
-					//log.Println("err conn: ", err)
+					log.Println("err conn: ", err)
 					return
 				} else {
 					log.Println("connection established with anouther peer!")
@@ -336,13 +335,6 @@ func (n *node) Listen() error {
 		goClose      = make(chan bool)
 	)
 
-	f, err := os.OpenFile("text.log",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
-	//logger := log.New(f, "log: ", log.LstdFlags)
 	go n.boostrap(context.Background(), peerFindChan, goClose, true)
 	ctx, cancel := context.WithTimeout(context.Background(), 7200*time.Second)
 	defer cancel()
@@ -351,8 +343,7 @@ func (n *node) Listen() error {
 		case <-ctx.Done():
 			return nil
 		case <-peerFindChan:
-			//logger.Println("Size routing: ", n.kadDHT.RoutingTable().Size())
-			//logger.Println("Size peerstore: ", len(n.host.Peerstore().Peers()))
+			log.Println("new peer find")
 			time.Sleep(6 * time.Second)
 		}
 	}
