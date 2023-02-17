@@ -81,7 +81,7 @@ func createPost(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	responseData.Result = "ok"
 	responseData.Text = "everything went smooth"
 	responseData.Time = time.Now().Format("02/01/2006, 15:04:05")
-	setupCORS(&w)
+	setupCORS(w)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(responseData)
 }
@@ -134,13 +134,8 @@ func streamTime(timer *sse.Streamer) {
 	}
 }
 
-func setupCORS(w *http.ResponseWriter) {
+func setupCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 }
