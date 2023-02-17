@@ -1,7 +1,6 @@
 package network
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -57,6 +56,20 @@ func DefaultConfig(port uint16) *ConfigNode {
 	}
 }
 
+type Conn struct {
+	In            chan *Message
+	Out           chan *Message
+	Pending, Wait bool
+}
+
+func NewConn(pend bool) Conn {
+	return Conn{
+		In:      make(chan *Message),
+		Out:     make(chan *Message),
+		Pending: pend,
+	}
+}
+
 type node struct {
 	ConfigNode
 
@@ -68,21 +81,23 @@ type node struct {
 	boostrapInfo []peer.AddrInfo
 	streams      map[peer.ID]bool
 
+	conns Conns
+
 	msgChan chan *Message
 
 	kadDHT *dht.IpfsDHT
 
-	hanler func(*network.Stream)
+	hanler func(*network.Stream) error
 
 	sync.Mutex
 	sync.WaitGroup
 }
 
-func NewNode(conf ConfigNode) P2PNode {
+func NewNode(conf ConfigNode, conns map[string]Conn) P2PNode {
 	return &node{
 		host:       nil,
 		ConfigNode: conf,
-		msgChan:    make(chan *Message, 100),
+		conns:      conns,
 		streams:    make(map[peer.ID]bool),
 	}
 }
@@ -159,11 +174,10 @@ func (n *node) Init(ctx context.Context) error {
 	if err != nil {
 		return errors.Errorf("creating host p2p multiaddr error")
 	}
-	host.SetStreamHandler(protocol.ID(n.ProtocolID), handleStream)
+	host.SetStreamHandler(protocol.ID(n.ProtocolID), NewHandler(n.conns).handler(false))
 	kademliaDHT, err := dht.New(
 		ctx,
 		host, dht.Mode(dht.ModeServer),
-		//dht.RoutingTableRefreshPeriod(10*time.Second),
 	)
 	if err != nil {
 		return err
@@ -304,16 +318,7 @@ func (n *node) Broadcast() error {
 					log.Println("connection established with anouther peer!")
 					it++
 					wg.Add(1)
-					rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-					closed := make(chan bool)
-					go writeData(rw, closed)
-					go readData(rw, closed)
-					select {
-					case <-closed:
-						wg.Done()
-						stream.Close()
-						return
-					}
+					NewHandler(n.conns).run(stream)
 				}
 			}()
 			if it >= EnoughPeers {
@@ -337,7 +342,7 @@ func (n *node) Listen() error {
 		log.Println(err)
 	}
 	defer f.Close()
-	logger := log.New(f, "log: ", log.LstdFlags)
+	//logger := log.New(f, "log: ", log.LstdFlags)
 	go n.boostrap(context.Background(), peerFindChan, goClose, true)
 	ctx, cancel := context.WithTimeout(context.Background(), 7200*time.Second)
 	defer cancel()
@@ -346,8 +351,8 @@ func (n *node) Listen() error {
 		case <-ctx.Done():
 			return nil
 		case <-peerFindChan:
-			logger.Println("Size routing: ", n.kadDHT.RoutingTable().Size())
-			logger.Println("Size peerstore: ", len(n.host.Peerstore().Peers()))
+			//logger.Println("Size routing: ", n.kadDHT.RoutingTable().Size())
+			//logger.Println("Size peerstore: ", len(n.host.Peerstore().Peers()))
 			time.Sleep(6 * time.Second)
 		}
 	}

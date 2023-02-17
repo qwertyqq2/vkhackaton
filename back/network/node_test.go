@@ -12,7 +12,9 @@ import (
 func makeNode(port uint16) P2PNode {
 	conf := DefaultConfig(port)
 
-	node := NewNode(*conf)
+	ch := make(Conns)
+
+	node := NewNode(*conf, ch)
 
 	ctx := context.Background()
 
@@ -29,7 +31,7 @@ func TestNode(t *testing.T) {
 }
 
 func TestMarhal(t *testing.T) {
-	id := MsgName2
+	id := MsgName3
 	data := []byte("qeqweqw")
 	msg := NewMessage(id, data)
 	mar, err := Marhal(msg)

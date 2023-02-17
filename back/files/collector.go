@@ -74,7 +74,7 @@ func (c *Collector) Snap() (values.Bytes, error) {
 	go func() {
 		defer c.wg.Done()
 		c.Locking()
-		usersWrap, err := c.ldb.getUsers()
+		usersWrap, err := c.ldb.GetUsers()
 		c.Unlock()
 		if err != nil {
 			exitChan <- true
@@ -147,4 +147,8 @@ func (c *Collector) RemoveFile(id values.Bytes) error {
 	c.Lock()
 	defer c.Unlock()
 	return c.ldb.removeFileById(crypto.Base64EncodeString(id))
+}
+
+func (c *Collector) LDB() *levelDB {
+	return c.ldb
 }

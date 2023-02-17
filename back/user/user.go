@@ -2,6 +2,7 @@ package user
 
 import (
 	"crypto/rand"
+	"encoding/json"
 
 	mcrypto "github.com/qwertyqq2/filebc/crypto"
 	"github.com/qwertyqq2/filebc/crypto/ring"
@@ -59,27 +60,19 @@ func (u *User) SignData(data []byte) (*ring.Sig, error) {
 	return ring.SignData(data, u.pk)
 }
 
-// func Marhal(msg *Message) ([]byte, error) {
-// 	return json.Marshal(struct {
-// 		Id      int
-// 		Payload []byte
-// 	}{
-// 		Id:      msg.Id,
-// 		Payload: msg.payload,
-// 	})
-// }
+func (u *User) Serialize() (string, error) {
+	jsonData, err := json.MarshalIndent(u, " ", "\t")
+	if err != nil {
+		return "", err
+	}
+	return string(jsonData), nil
+}
 
-// func Unmarhsal(d []byte) (*Message, error) {
-// 	unmarshalled := struct {
-// 		Id      int
-// 		Payload []byte
-// 	}{}
-// 	err := json.Unmarshal(d, &unmarshalled)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &Message{
-// 		Id:      unmarshalled.Id,
-// 		payload: unmarshalled.Payload,
-// 	}, nil
-// }
+func Deserialize(data string) (*User, error) {
+	var u User
+	err := json.Unmarshal([]byte(data), &u)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}

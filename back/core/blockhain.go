@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -13,6 +14,13 @@ import (
 	"github.com/qwertyqq2/filebc/syncbc"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
+)
+
+var (
+	ErrLoadCollector  = errors.New("load collector err")
+	ErrLoadBlockchain = errors.New("load bc err")
+	ErrInsertBlock    = errors.New("insert blocks err")
+	ErrInsertRollback = errors.New("insert rollback err")
 )
 
 type ConfBc struct {
@@ -91,114 +99,6 @@ func NewBlockchainWithGenesis(creator *user.User) (*Blockchain, error) {
 	bc.lastNumber = 1
 	bc.lastBlock = genesis
 	bc.lastHashBlock = genesis.HashBlock
-	return bc, nil
-}
-
-func LoadBlockchain(addr *user.Address) (*Blockchain, error) {
-
-	var uname = addr.String()[:2]
-	coll, err := files.LoadCollector(uname)
-	if err != nil {
-		return nil, err
-	}
-	l, err := loadLevel(uname)
-	if err != nil {
-		return nil, err
-	}
-	snap, err := coll.Snap()
-	if err != nil {
-		return nil, err
-	}
-	lastBlock, err := l.lastBlock()
-	if err != nil {
-		return nil, err
-	}
-	return &Blockchain{
-		conf:          DefaultConf(),
-		coll:          coll,
-		dblevel:       l,
-		lastNumber:    lastBlock.Number,
-		flashInterval: uint64(0),
-		lastHashBlock: lastBlock.HashBlock,
-		lastSnap:      snap,
-		wg:            sync.WaitGroup{},
-		sm:            syncbc.NewSyncBc(),
-	}, nil
-}
-
-func NewBlockchainExternal(client *user.Address, blocks ...*types.Block) (*Blockchain, error) {
-	var regBlocks = make(types.Blocks, len(blocks))
-
-	if needReorgBlocks(blocks) {
-		rg, err := reorgBlocks(blocks)
-		if err != nil {
-			return nil, err
-		}
-		copy(regBlocks, rg)
-	} else {
-		copy(regBlocks, blocks)
-	}
-
-	gen := regBlocks[0]
-	addrCreator, err := user.ParseAddress(gen.Miner)
-	if err != nil {
-		return nil, err
-	}
-
-	coll, err := files.NewCollector(client.String()[:2])
-	if err != nil {
-		return nil, err
-	}
-	conf := DefaultConf()
-	ldb, err := NewLevelDB(client.String()[:2])
-	if err != nil {
-		return nil, err
-	}
-	valGen := gen.Transactions()[0].GetValue()
-	if err := coll.AddBalance(addrCreator, valGen); err != nil {
-		return nil, err
-	}
-	curSnap, err := coll.Snap()
-	if err != nil {
-		return nil, err
-	}
-
-	if !bytes.Equal(gen.CurShap, curSnap) || !bytes.Equal(gen.PrevBlock, []byte(types.GenPrevblock)) || !bytes.Equal(gen.PrevSnap, []byte(types.GenPrevSnap)) {
-		return nil, fmt.Errorf("gen valid err")
-	}
-
-	if !gen.Valid() {
-		return nil, fmt.Errorf("gen hash valid err")
-	}
-	bc := &Blockchain{
-		conf:          conf,
-		coll:          coll,
-		dblevel:       ldb,
-		lastNumber:    uint64(1),
-		flashInterval: uint64(0),
-		lastHashBlock: gen.HashBlock,
-		lastSnap:      curSnap,
-		genesisBlock:  gen,
-		wg:            sync.WaitGroup{},
-		sm:            syncbc.NewSyncBc(),
-	}
-
-	sergenblock, err := gen.SerializeBlock()
-	if err != nil {
-		return nil, err
-	}
-	if err := bc.dblevel.insertBlock(crypto.Base64EncodeString(gen.HashBlock), sergenblock); err != nil {
-		return nil, err
-	}
-	bc.lastNumber = gen.Number
-	bc.lastBlock = gen
-	bc.lastHashBlock = gen.HashBlock
-	if len(regBlocks[1:]) == 0 {
-		return bc, nil
-	}
-	if err := bc.InsertChain(regBlocks[1:]...); err != nil {
-		return nil, err
-	}
 	return bc, nil
 }
 

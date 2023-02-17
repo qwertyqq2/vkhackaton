@@ -1,17 +1,21 @@
 package network
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/json"
+)
 
 const (
-	MsgName1 = iota
-	MsgName2
+	GetChain = iota
+	GetBlocks
 	MsgName3
 	MsgName4
 )
 
 type Message struct {
-	Id      int
-	payload []byte
+	Id       int
+	StreamId string
+	payload  []byte
 }
 
 func NewMessage(id int, payload []byte) *Message {
@@ -23,11 +27,13 @@ func NewMessage(id int, payload []byte) *Message {
 
 func Marhal(msg *Message) ([]byte, error) {
 	return json.Marshal(struct {
-		Id      int
-		Payload []byte
+		Id       int
+		StreamId string
+		Payload  []byte
 	}{
-		Id:      msg.Id,
-		Payload: msg.payload,
+		Id:       msg.Id,
+		StreamId: msg.StreamId,
+		Payload:  msg.payload,
 	})
 }
 
@@ -44,4 +50,21 @@ func Unmarhsal(d []byte) (*Message, error) {
 		Id:      unmarshalled.Id,
 		payload: unmarshalled.Payload,
 	}, nil
+}
+
+func NilMessage() *Message {
+	return &Message{
+		payload: []byte("nil"),
+	}
+}
+
+func IsNilMessage(mes *Message) bool {
+	if bytes.Equal(mes.payload, []byte("nil")) {
+		return true
+	}
+	return false
+}
+
+func (msg *Message) Payload() []byte {
+	return msg.payload
 }

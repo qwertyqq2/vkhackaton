@@ -81,7 +81,7 @@ func (l *levelDB) removeFileById(id string) error {
 }
 
 func (l *levelDB) allFiles() ([]*File, error) {
-	fsarr, err := l.getFiles()
+	fsarr, err := l.GetFiles()
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (l *levelDB) allFiles() ([]*File, error) {
 	return files, nil
 }
 
-func (l *levelDB) getFiles() ([]string, error) {
+func (l *levelDB) GetFiles() ([]string, error) {
 	rows, err := l.db.Query("Select File from Files")
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func (l *levelDB) getBalance(address string) (uint64, bool, error) {
 	return uint64(user.Bal), true, nil
 }
 
-func (l *levelDB) getUsers() ([]wrapper, error) {
+func (l *levelDB) GetUsers() ([]wrapper, error) {
 	rows, err := l.db.Query("Select * from Users")
 	if err != nil {
 		return nil, err

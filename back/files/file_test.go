@@ -41,7 +41,7 @@ func TestCreateDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addrs, err := l.getUsers()
+	addrs, err := l.GetUsers()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestCreateDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addrs, err = l.getUsers()
+	addrs, err = l.GetUsers()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestCreateDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addrs, err = l.getUsers()
+	addrs, err = l.GetUsers()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestCreateDb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addrs, err = l.getUsers()
+	addrs, err = l.GetUsers()
 	if err != nil {
 		t.Fatal(err)
 	}

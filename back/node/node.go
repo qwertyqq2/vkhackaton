@@ -1,13 +1,15 @@
 package node
 
 import (
+	"context"
 	"log"
-	"os"
+	"strconv"
+	"time"
 
 	"github.com/qwertyqq2/filebc/core"
 	"github.com/qwertyqq2/filebc/network"
-	"github.com/qwertyqq2/filebc/network/repo"
-	"github.com/qwertyqq2/filebc/values"
+	reponode "github.com/qwertyqq2/filebc/node/repo"
+	"github.com/qwertyqq2/filebc/user"
 )
 
 type Option func(n string) error
@@ -21,62 +23,67 @@ type confNode struct {
 type Node struct {
 	p2p network.P2PNode
 
-	repo repo.Repo
+	hand handler
+
+	client *user.Address
+
+	repo reponode.Repo
 
 	bc *core.Blockchain
-
-	db []values.Bytes
 }
 
-func (n *Node) Init() error {
+func NewNode(conf *confNode, opts ...Option) *Node {
+	confP2P := conf.confP2P
+	repo, err := reponode.Open("node-pk" + strconv.Itoa(int(conf.port)))
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	pk, err := repo.PrivateKey()
+	if err != nil {
+		return nil
+	}
+	client := user.NewUser(pk)
+	n := &Node{
+		repo: repo,
+	}
+	n.client = client.Address()
+	n.hand = NewHandler(n)
+
+	p2p := network.NewNode(*confP2P, n.hand.conns)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	// var (
+	// 	wg      sync.WaitGroup
+	// 	errChan = make(chan error)
+	// )
+
+	if err := p2p.Init(ctx); err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	// bc, err := core.LoadBlockchain(client.Address())
+	// if err != nil {
+	// 	switch err {
+	// 	case core.ErrLoadBc:
+	// 		if err := p2p.Broadcast(); err != nil {
+	// 			log.Println("failed to query blockchain")
+	// 			return nil
+	// 		}
+	// 		go n.hand.Send(GetChain, []byte(""))
+
+	// 	default:
+	// 		log.Println("failed to load blockchain")
+	// 		return nil
+	// 	}
+	// }
+	if err := p2p.Broadcast(); err != nil {
+		log.Println("failed to query blockchain")
+		return nil
+	}
+	go n.hand.Send(GetChain, []byte(""))
+
 	return nil
 }
-
-func NewNode() *Node {
-	data1, err := os.ReadFile("htmlfiles/htmlExample1.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	data2, err := os.ReadFile("htmlfiles/htmlExample2.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	data3, err := os.ReadFile("htmlfiles/htmlExample3.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &Node{
-		db: []values.Bytes{data1, data2, data3},
-	}
-}
-
-func (n *Node) Get() []values.Bytes {
-	return n.db
-}
-
-// func NewNode(conf *confNode, opts ...Option) *Node {
-// 	confP2P := conf.confP2P
-// 	p2p := network.NewNode(*confP2P)
-// 	ctx := context.Background()
-// 	repo, err := reponode.Open("node-pk" + strconv.Itoa(int(conf.port)))
-
-// 	var (
-// 		wg      sync.WaitGroup
-// 		errChan = make(chan error)
-// 	)
-// 	wg.Add(1)
-// 	go func() {
-// 		defer wg.Done()
-// 		if err := p2p.Init(ctx); err != nil {
-// 			log.Println(err)
-// 			errChan <- err
-// 		}
-// 	}()
-
-// 	pk, err := repo.PrivateKey()
-// 	if err != nil {
-// 		return nil
-// 	}
-// 	_ = user.NewUser(pk)
-// 	return nil
-// }
