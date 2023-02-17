@@ -82,6 +82,10 @@ func createPost(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	responseData.Text = "everything went smooth"
 	responseData.Time = time.Now().Format("02/01/2006, 15:04:05")
 	setupCORS(w)
+	if r.Method == "OPTIONS" {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(responseData)
 }
