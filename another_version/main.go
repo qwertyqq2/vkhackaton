@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"github.com/julienschmidt/sse"
+	//"github.com/julienschmidt/sse"
+	"github.com/rs/cors"
 	"github.com/kardianos/service"
 	"net/http"
 	"os"
@@ -45,16 +46,17 @@ func (p program) Stop(s service.Service) error {
 
 func (p program) run() {
 	router := httprouter.New()
-	timer := sse.New()
-	router.ServeFiles("/js/*filepath", http.Dir("js"))
-	router.ServeFiles("/css/*filepath", http.Dir("css"))
+	handler := cors.Default().Handler(router)
+	//timer := sse.New()
+	//router.ServeFiles("/js/*filepath", http.Dir("js"))
+	//router.ServeFiles("/css/*filepath", http.Dir("css"))
 	router.GET("/", serveHomepage)
 
-	router.POST("/get_time", getTime)
+	// router.POST("/get_time", getTime)
 	router.POST("/create_post", createPost)
-	router.Handler("GET", "/time", timer)
-	go streamTime(timer)
-	err := http.ListenAndServe(":3000", router)
+	//router.Handler("GET", "/time", timer)
+	//go streamTime(timer)
+	err := http.ListenAndServe(":3001", handler)
 	if err != nil {
 		fmt.Println("Problem starting web server: " + err.Error())
 		os.Exit(-1)
