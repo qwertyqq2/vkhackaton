@@ -7,7 +7,7 @@ const Header = () => {
     return (
     <header className={classes.header}>
         <div className={classes.vkImg}>
-            <NavLink to=''><img src="vk.png" alt=''/></NavLink>
+            <a href='/'><img src="vk.png" alt=''/></a>
         </div>
         <div>
             <NavLink to='/Profile'><img src="user.png" alt=''/></NavLink>

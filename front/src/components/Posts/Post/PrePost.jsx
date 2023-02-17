@@ -26,22 +26,16 @@ const PrePost = (props) => {
         }
     };
 
-    const [likeElement, setLikeElement] = useState(true);
-
-    const handleLikeClick = () => {
-        setLikeElement(!likeElement);
-    }
-
     return (
-        <div className={s.post + (props.isVisible ? '' : (' ' + s.hidden))}>
+        <div className={s.post + (props.isVisible.v ? '' : (' ' + s.hidden))}>
             <NavLink to={'/post' + props.index}>
-                <div>
+                <div onClick={props.isVisible.h}>
                     {parse(html, options)}
                 </div>
             </NavLink>
             <div className={s.buttons}>
-                <div className={s.likeButton} onClick={handleLikeClick}>
-                    {likeElement ? (
+                <div className={s.likeButton} onClick={props.isLikePressed.h}>
+                    {props.isLikePressed.l ? (
                         <img src='like.png' alt='' />
                     ) : 
                     (

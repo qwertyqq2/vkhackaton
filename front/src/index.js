@@ -8,10 +8,9 @@ import { subscribe } from './redux/state.js';
 
 let rerenderEntireTree = (state) => {
   const root = ReactDOM.createRoot(document.getElementById('root'));
-  console.log(state);
   root.render(
     <React.StrictMode>
-      <App htmlContent={state.getHtmlContent} />
+      <App htmlContent={state.getHtmlContent} comments={state.comments}/>
     </React.StrictMode>
   );
 }

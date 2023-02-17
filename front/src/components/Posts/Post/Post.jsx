@@ -57,8 +57,8 @@ const Post = (props) => {
             </div>
             <div className={s.hl} />
             <div className={s.buttons}>
-                <div className={s.likeButton} onClick={handleLikeClick}>
-                    {likeElement ? (
+                <div className={s.likeButton} onClick={props.isLikePressed.h}>
+                    {props.isLikePressed.l ? (
                         <img src='like.png' alt='' />
                     ) : 
                     (
@@ -69,15 +69,14 @@ const Post = (props) => {
                     <img src='comment.png' alt='' />
                 </div>
                 <div className={s.arrow_back}>
-                    <NavLink to='*'><img src='arrow_back.png' alt='' /></NavLink>
+                    <NavLink to='/' onClick={props.isVisible.h}><img src='arrow_back.png' alt='' /></NavLink>
                 </div>
             </div>
             {showCommentElement && (
                 <div className={s.comments}>
-                    <Comments />
+                    <Comments comments={props.comments} postId={props.postId} />
                 </div>
             )}
-
         </div>
     );
 }
