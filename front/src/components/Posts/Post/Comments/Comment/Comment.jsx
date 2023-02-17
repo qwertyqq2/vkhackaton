@@ -1,7 +1,7 @@
 import React from 'react';
 import s from './Comment.module.css';
 
-const Comment = () => {
+const Comment = (props) => {
     return (
         <div className={s.comment}>
             <div className={s.commentatorImg}>
@@ -9,12 +9,7 @@ const Comment = () => {
             </div>
             <div className={s.commentatorText}>
                 <p>
-                    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaffffffffffffffffffff
-                    sddddddddddddddddddddddddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaff
-                    ffffffffffffffffff
-                    sdddddddddddddddddddddddddd
-                    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaffffffffffffffffffff
-                    sdddddddddddddddddddddddddd
+                    { props.comments.message }
                 </p>
             </div>
         </div>

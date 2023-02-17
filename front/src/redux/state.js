@@ -1,4 +1,4 @@
-
+// load HTMLs
 const loadHtmlContent = [];
 
 for (let i = 1; i <= 3; i++) {
@@ -8,11 +8,13 @@ for (let i = 1; i <= 3; i++) {
 
     loadHtmlContent.push(html);
 }
+//
 
 let state = {
   getHtmlContent: loadHtmlContent,
   comments: [
-    { bindPostId: 1, id: 1, message: "Test comment" }
+    { bindPostId: 1, id: 1, message: "Test comment" },
+    { bindPostId: 2, id: 2, message: "T_T"}
   ],
 };
 
