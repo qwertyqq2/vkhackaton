@@ -27,6 +27,12 @@ type TimeDataOutput struct {
 	Duration string
 }
 
+type PostDataOutput struct{
+	Result string
+	Text string
+	Time string
+}
+
 type FormData struct {
 	Name string   `json:"name"`
 	Message string `json:"message"`
@@ -71,10 +77,11 @@ func createPost(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
     fmt.Println("HTML file created successfully!")
 
-	var responseData TimeDataOutput
+	var responseData PostDataOutput
 	responseData.Result = "ok"
 	responseData.Text = "everything went smooth"
 	responseData.Time = time.Now().Format("02/01/2006, 15:04:05")
+	setupCORS(&w)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(responseData)
 }
@@ -125,4 +132,10 @@ func streamTime(timer *sse.Streamer) {
 		timer.SendString("", "time", time.Now().Format("02/01/2006, 15:04:05"))
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func setupCORS(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
