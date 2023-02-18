@@ -22,7 +22,7 @@ type TimeDataInput struct {
 
 type CommentInput struct {
 	//Author string `json:"author"`
-	Content string `json:"content"`
+	Content string `json:"message"`
 	//PostID int `json:"postID"`
 }
 
@@ -105,7 +105,8 @@ func createPost(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	fmt.Println(formData.Name)
 
     // Create the HTML string by wrapping the header and content in HTML tags
-    html := "<html><head><title>" + formData.Name + "</title></head><body><h1>" + formData.Name + "</h1><p>" + formData.Message + "</p></body></html>"
+    html := "<div class ='title'>" + formData.Name + "</div>/n" + 
+			"<div class ='content'>\n" + formData.Message + "\n" + "</div>"
 
     // Create a new file to write to
     file, err := os.Create("../front/src/data/1.html")

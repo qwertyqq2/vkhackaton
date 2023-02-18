@@ -48,20 +48,20 @@ const Comments = (props) => {
             const data = {
                 message: message,
             };
-            fetch('http://localhost:3001/create_post', {
+            fetch('http://localhost:3001/create_comment', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             })
-                // .then(response => {
-                //     if (response.ok) {
-                //         // handle the response from the Go backend here
-                //     } else {
-                //         throw new Error('Network response was not ok');
-                //     }
-                // })
+                .then(response => {
+                    if (response.ok) {
+                        // handle the response from the Go backend here
+                    } else {
+                        throw new Error('Network response was not ok');
+                    }
+                })
                 .catch(error => {
                     console.error('Error:', error);
                 });
@@ -77,14 +77,15 @@ const Comments = (props) => {
                 )}
             </div>
             <div className={s.createComment}>
-                <form>
+                <form onSubmit ={handleSubmit}>
                     <div className={s.textArea}>
                         <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
                     </div>
-                </form>
                 <div className={s.arrow}>
-                    <img src='right-arrow.png' alt='' onClick={handleSubmit} />
+                    {/* <img src='right-arrow.png' alt='' onClick={handleSubmit} /> */}
+                    <input type = "submit" value="Submit" onClick={handleInputChange}/>
                 </div>
+                </form>
             </div>
         </div>
     );
