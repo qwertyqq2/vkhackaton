@@ -17,7 +17,6 @@ function App(props) {
             <Route path='*' element={<Posts
               htmlContent={props.store.getHtmlContent}
               comments={props.store.comments}
-              likeCount={props.store.likeCount}
               likes={props.store.likes} />} />
             <Route path='/Profile' element={<Profile
               account={props.store.account} />} />

@@ -41,6 +41,13 @@ const Post = (props) => {
         setShowCommentElement(!showCommentElement);
     }
 
+    const [likeElement, setLikeElement] = useState(true);
+
+    const handleLikeClick = () => {
+        setLikeElement(!likeElement);
+        props.likes.likePressed = likeElement;
+    }
+
     return (
         <div className={s.post}>
             <div className={s.postName + ' ' + s.content}>
@@ -51,8 +58,8 @@ const Post = (props) => {
             </div>
             <div className={s.hl} />
             <div className={s.buttons}>
-                <div className={s.likeButton} onClick={props.isLikePressed.h}>
-                    {props.isLikePressed.l ? (
+                <div className={s.likeButton} onClick={handleLikeClick}>
+                    {!props.likes.likePressed ? (
                         <img src='like.png' alt='' />
                     ) : 
                     (

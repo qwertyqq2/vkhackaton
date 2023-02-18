@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import s from "./Post.module.css";
 import parse, { domToReact } from 'html-react-parser';
 import { NavLink } from "react-router-dom";
@@ -26,6 +26,13 @@ const PrePost = (props) => {
         }
     };
 
+    const [likeElement, setLikeElement] = useState(true);
+
+    const handleLikeClick = () => {
+        setLikeElement(!likeElement);
+        props.likes.likePressed = likeElement;
+    }
+
     return (
         <div className={s.post + (props.isVisible.v ? '' : (' ' + s.hidden))}>
             <NavLink to={'/post' + props.index}>
@@ -34,15 +41,15 @@ const PrePost = (props) => {
                 </div>
             </NavLink>
             <div className={s.buttons}>
-                <div className={s.likeButton} onClick={props.isLikePressed.h}>
-                    {props.isLikePressed.l ? (
+                <div className={s.likeButton} onClick={handleLikeClick}>
+                    {!props.likes.likePressed ? (
                         <img src='like.png' alt='' />
-                    ) : 
-                    (
-                        <img src='like_active.png' alt='' />
-                    )}
-                    {props.likeCount.count}
+                    ) :
+                        (
+                            <img src='like_active.png' alt='' />
+                        )}
                 </div>
+                { props.likes.count }
             </div>
         </div>
     );

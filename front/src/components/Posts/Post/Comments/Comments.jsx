@@ -48,7 +48,7 @@ const Comments = (props) => {
             const data = {
                 message: message,
             };
-            fetch('http://localhost:3001/create_post', {
+            fetch('http://localhost:3001/create_comment', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
