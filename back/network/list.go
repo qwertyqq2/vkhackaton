@@ -36,6 +36,20 @@ const (
 	EnoughPeers = 1
 )
 
+type Conn struct {
+	In            chan *Message
+	Out           chan *Message
+	Pending, Wait bool
+}
+
+func NewConn(pend bool) Conn {
+	return Conn{
+		In:      make(chan *Message),
+		Out:     make(chan *Message),
+		Pending: pend,
+	}
+}
+
 type ConfigNode struct {
 	Repopath          string
 	Port              uint16
@@ -55,20 +69,6 @@ func DefaultConfig(port uint16) *ConfigNode {
 	}
 }
 
-type Conn struct {
-	In            chan *Message
-	Out           chan *Message
-	Pending, Wait bool
-}
-
-func NewConn(pend bool) Conn {
-	return Conn{
-		In:      make(chan *Message),
-		Out:     make(chan *Message),
-		Pending: pend,
-	}
-}
-
 type node struct {
 	ConfigNode
 
@@ -76,17 +76,11 @@ type node struct {
 	repo repo.Repo
 
 	addrs        []string
-	loaded       bool
 	boostrapInfo []peer.AddrInfo
-	streams      map[peer.ID]bool
+	conns        Conns
+	kadDHT       *dht.IpfsDHT
 
-	conns Conns
-
-	msgChan chan *Message
-
-	kadDHT *dht.IpfsDHT
-
-	hanler func(*network.Stream) error
+	streams map[peer.ID]bool
 
 	sync.Mutex
 	sync.WaitGroup
@@ -110,7 +104,7 @@ func (n *node) ID() peer.ID {
 
 func (n *node) Init(ctx context.Context) error {
 	nodeAddrStrings := []string{fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", n.Port)}
-	repo, err := repo.Open("node-libp2p-pk" + strconv.Itoa(int(n.Port)))
+	repo, err := repo.Open("node-pk" + strconv.Itoa(int(n.Port)))
 	if err != nil {
 		return err
 	}
@@ -177,6 +171,7 @@ func (n *node) Init(ctx context.Context) error {
 	kademliaDHT, err := dht.New(
 		ctx,
 		host, dht.Mode(dht.ModeServer),
+		//dht.RoutingTableRefreshPeriod(10*time.Second),
 	)
 	if err != nil {
 		return err
@@ -217,7 +212,7 @@ func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, go
 					// } else {
 					log.Println("Connection established with relay node")
 					it++
-					//}
+					// }
 				}
 			}
 			n.Done()
@@ -231,6 +226,7 @@ func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, go
 	if err != nil {
 		return err
 	}
+	log.Println("Provider loading...")
 	if err := n.kadDHT.Provide(tctx, c, true); err != nil {
 		return fmt.Errorf("provide error")
 	}
@@ -282,19 +278,16 @@ func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, go
 
 func (n *node) Broadcast() error {
 	var (
-		wg    sync.WaitGroup
 		it    = 0
 		close = false
 
 		peerFindChan = make(chan peer.AddrInfo, 10)
 		goClose      = make(chan bool)
 	)
+	defer n.kadDHT.RoutingTable().Close()
 	log.Println("Boostrap go")
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(600*time.Second))
-	defer func() {
-		cancel()
-		n.kadDHT.RoutingTable().Close()
-	}()
+	defer cancel()
 	go n.boostrap(context.Background(), peerFindChan, goClose, false)
 	for !close {
 		select {
@@ -311,12 +304,13 @@ func (n *node) Broadcast() error {
 				stream, err := n.host.NewStream(network.WithUseTransient(context.Background(),
 					n.ProtocolID), peer.ID, protocol.ID(n.ProtocolID))
 				if err != nil {
-					log.Println("err conn: ", err)
+					//log.Println("err conn: ", err)
 					return
 				} else {
 					log.Println("connection established with anouther peer!")
 					it++
-					wg.Add(1)
+					log.Println("Stream here")
+					time.Sleep(1 * time.Second)
 					NewHandler(n.conns).run(stream)
 				}
 			}()
@@ -334,7 +328,6 @@ func (n *node) Listen() error {
 		peerFindChan = make(chan peer.AddrInfo, 10)
 		goClose      = make(chan bool)
 	)
-
 	go n.boostrap(context.Background(), peerFindChan, goClose, true)
 	ctx, cancel := context.WithTimeout(context.Background(), 7200*time.Second)
 	defer cancel()
@@ -343,7 +336,6 @@ func (n *node) Listen() error {
 		case <-ctx.Done():
 			return nil
 		case <-peerFindChan:
-			log.Println("new peer find")
 			time.Sleep(6 * time.Second)
 		}
 	}

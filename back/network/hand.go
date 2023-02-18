@@ -26,7 +26,6 @@ func (h Handler) run(s network.Stream) {
 func (h Handler) handler(pend bool) func(s network.Stream) {
 	return func(s network.Stream) {
 		log.Println("Стрим прищел")
-		defer delete(h.conns, s.ID())
 		h.conns[s.ID()] = NewConn(pend)
 		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
 		go h.read(rw, s.ID())
@@ -35,6 +34,7 @@ func (h Handler) handler(pend bool) func(s network.Stream) {
 }
 
 func (h Handler) read(rw *bufio.ReadWriter, streamId string) {
+	defer delete(h.conns, streamId)
 	buf := make([]byte, 40*1024)
 	for {
 		n, err := rw.Read(buf)
