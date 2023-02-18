@@ -53,8 +53,13 @@ func (p program) run() {
 	router.GET("/", serveHomepage)
 
 	// router.POST("/get_time", getTime)
-	router.POST("/create_post", createPost)
+	router.POST("/create_post", createPost) // создать пост
+
+	router.POST("/create_comment", createComment) // создать коммент
+	//router.GET("/get_new_post", getRecentPost) // получить новый пост
+	//router.PATCH("/update_likes", updateLikes) // обновить счетчик лайков
 	//router.Handler("GET", "/time", timer)
+
 	//go streamTime(timer)
 	err := http.ListenAndServe(":3001", handler)
 	if err != nil {

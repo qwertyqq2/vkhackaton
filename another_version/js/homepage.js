@@ -6,6 +6,7 @@ const askTime = document.getElementById("ask-time")
 const formButton = document.getElementById("form-button")
 const askPost = document.getElementById("post-added")
 const form = document.querySelector('form');
+const postCommentButton = document.getElementById("post-comment")
 
 askButton.addEventListener("click", function () {
     let data = {
@@ -70,6 +71,30 @@ form.addEventListener('submit', (event) => {
         console.error('Error:', error);
       });
 });
+
+postCommentButton.addEventListener("click", function () {
+  let data = {
+      Name: name.value,
+      Time: new Date().toLocaleString("en-IE"),
+  }; // ??
+  fetch("/post_comment", {
+      headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+      },
+      method: "POST",
+      body: JSON.stringify(data)
+  // }).then((response) => {
+  //     response.text().then(function (data) {
+  //         let result = JSON.parse(data);
+  //         console.log(result)
+  //         askTime.textContent = "Backend processing took " + result["Duration"] + " and ended at " + result["Time"]
+  //     });
+   }) 
+    .catch((error) => {
+      console.log(error)
+  });
+})
 
 const time = new EventSource('/time');
 time.addEventListener('time', (e) => {

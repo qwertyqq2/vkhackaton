@@ -1,13 +1,13 @@
 // load HTMLs
 const loadHtmlContent = [];
 
-for (let i = 1; i <= 3; i++) {
+// for (let i = 1; i <= 3; i++) {
     // eslint-disable-next-line
-    let htmlModule = require(`raw-loader!../data/htmlExample` + i + `.html`);
+    let htmlModule = require(`raw-loader!../data/` + 1 + `.html`);
     let html = htmlModule.default;
 
     loadHtmlContent.push(html);
-}
+// }
 //
 
 let state = {
