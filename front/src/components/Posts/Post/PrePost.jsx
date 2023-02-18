@@ -31,6 +31,8 @@ const PrePost = (props) => {
     const handleLikeClick = () => {
         setLikeElement(!likeElement);
         props.likes.likePressed = likeElement;
+        
+        likeElement ? ++props.likes.count : --props.likes.count;
     }
 
     return (
@@ -49,7 +51,10 @@ const PrePost = (props) => {
                             <img src='like_active.png' alt='' />
                         )}
                 </div>
-                { props.likes.count }
+                <div className={s.likes}>
+                    { props.likes.count }
+                </div>
+                
             </div>
         </div>
     );

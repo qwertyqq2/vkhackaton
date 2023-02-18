@@ -4,14 +4,6 @@ import parse, { domToReact } from 'html-react-parser';
 import Comments from './Comments/Comments';
 import { NavLink } from 'react-router-dom';
 
-// const PostItem = (props) => {
-//     return (
-//         <div className={s.postItem + ' ' + s.active}>
-//             <NavLink to={"/post/" + props.id}><Post /></NavLink>
-//         </div>
-//     );
-// }
-
 const Post = (props) => {
     const html = props.source;
 

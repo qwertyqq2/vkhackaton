@@ -12,15 +12,6 @@ const Posts = (props) => {
         setVisibleElement(!visibleElement);
     }
 
-    // const [likeElement, setLikeElement] = useState(true);
-
-    // const handleLikeClick = (ind) => {
-    //     setLikeElement(!likeElement);
-    //     props.likes[ind].likePressed = likeElement;
-    //     // console.log("handler:", likeElement);
-    //     // console.log(props.likes[ind].likePressed);
-    // }
-
     return (
         <div className={s.posts}>
             {props.htmlContent.map((item, ind) =>
@@ -39,7 +30,6 @@ const Posts = (props) => {
                             comments={props.comments}
                             postId={index + 1}
                             isVisible={{ v: visibleElement, h: handleVisibleElement }}
-                            // isLikePressed={{ l: likeElement, h: handleLikeClick }}
                             likes={props.likes[index]} />} />
                 )}
             </Routes>

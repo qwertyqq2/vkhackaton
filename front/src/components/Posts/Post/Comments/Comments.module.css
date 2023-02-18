@@ -19,7 +19,7 @@
 .createComment {
     grid-area: d;
 
-    display: grid;
+    display: flex;
     grid-template-areas:
         "l r";
 
