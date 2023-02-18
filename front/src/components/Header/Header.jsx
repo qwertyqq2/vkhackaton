@@ -7,13 +7,13 @@ const Header = () => {
     return (
     <header className={classes.header}>
         <div className={classes.vkImg}>
-            <a href='/'><img src="vk.png" alt=''/></a>
+            <a href='/'><img src="photo1676760339.jpeg" alt=''/></a>
         </div>
         <div>
-            <NavLink to='/Profile'><img src="user.png" alt=''/></NavLink>
+            <NavLink to='/Profile'><img src="photo1676760637.jpeg" alt=''/></NavLink>
         </div>
         <div>
-            <NavLink to='/Create'><img src="more.png" alt=''/></NavLink>
+            <NavLink to='/Create'><img src="create_post.jpeg" alt=''/></NavLink>
         </div>
     </header>
     );
