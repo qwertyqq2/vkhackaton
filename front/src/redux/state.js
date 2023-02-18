@@ -1,6 +1,7 @@
 // load HTMLs
 const loadHtmlContent = [];
 
+<<<<<<< HEAD
 // for (let i = 1; i <= 3; i++) {
     // eslint-disable-next-line
     let htmlModule = require(`raw-loader!../data/` + 1 + `.html`);
@@ -8,40 +9,55 @@ const loadHtmlContent = [];
 
     loadHtmlContent.push(html);
 // }
+=======
+for (let i = 1; i <= 3; i++) {
+  // eslint-disable-next-line
+  let htmlModule = require(`raw-loader!../data/htmlExample` + i + `.html`);
+  let html = htmlModule.default;
+
+  loadHtmlContent.push(html);
+}
+>>>>>>> 6d495287be382d9ee85519c553512d99754103bc
 //
 
 let state = {
   getHtmlContent: loadHtmlContent,
   comments: [
     { bindPostId: 1, id: 1, message: "Test comment" },
-    { bindPostId: 2, id: 2, message: "T_T"},
+    { bindPostId: 2, id: 2, message: "T_T" },
     { bindPostId: 1, id: 3, message: "Second comm" }
   ],
-  likes : [
+  likes: [
     { bindPostId: 1, likePressed: false },
     { bindPostId: 2, likePressed: false }
   ],
-  likeCount : [
+  likeCount: [
     { bindPostId: 1, count: 0 },
     { bindPostId: 2, count: 0 }
   ],
-  account : [
+  account: [
     { city: "Moscow", age: -1 }
-  ],
+]
 };
 
-let rerenderEntireTree = () => {};
+let rerenderEntireTree = () => { };
 
 export let addPost = () => {
-    let newPost = {
-        
-    };
+  let newPost = {
 
-    rerenderEntireTree();
+  };
+
+  rerenderEntireTree(state);
 };
 
+export let addComment = (params) => {
+  state.comments.push({ bindPostId: params.postId, id: params.id, message: params.message });
+
+  rerenderEntireTree(state);
+}
+
 export const subscribe = (observer) => {
-    rerenderEntireTree = observer;
+  rerenderEntireTree = observer;
 };
 
 export default state;
