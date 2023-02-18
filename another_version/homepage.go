@@ -110,7 +110,8 @@ func createPost(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
     // Create a new file to write to
 	postsCount++
-    file, err := os.Create("../src/data/htmlExample" + strconv.Itoa(postsCount) + ".html")
+    // file, err := os.Create("../front/src/data/htmlExample" + strconv.Itoa(postsCount) + ".html" // for danil
+	file, err := os.Create("../src/data/htmlExample" + strconv.Itoa(postsCount) + ".html" // for general
     if err != nil {
         fmt.Println("Error creating file:", err)
         return
