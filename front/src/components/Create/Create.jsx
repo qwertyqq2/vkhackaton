@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import s from './Create.module.css';
+import { postsCount } from '../../redux/state';
 
 const Create = () => {
 
@@ -7,10 +8,12 @@ const Create = () => {
 
     const handleInputChange = (event) => {
         setInputValue(event.target.value);
+
     };
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        debugger;
         // do something with the input value
         const form = document.querySelector('form');
 
@@ -34,6 +37,7 @@ const Create = () => {
                 message: message,
                 interests: interests
             };
+            debugger;
             fetch('http://localhost:3001/create_post', {
                 method: 'POST',
                 headers: {
@@ -43,12 +47,18 @@ const Create = () => {
             })
                 .then(response => {
                     if (response.ok) {
-                        // handle the response from the Go backend here
+                        debugger;
+                        let temp = JSON.parse(data);
+                        debugger;
+                        console.log(postsCount);
+                        postsCount = temp["Count"];
                     } else {
+                        debugger;
                         throw new Error('Network response was not ok');
                     }
                 })
                 .catch(error => {
+                    debugger;
                     console.error('Error:', error);
                 });
         });

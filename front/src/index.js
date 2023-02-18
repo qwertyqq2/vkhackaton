@@ -11,11 +11,7 @@ let rerenderEntireTree = (state) => {
   root.render(
     <React.StrictMode>
       <App 
-      htmlContent={state.getHtmlContent} 
-      comments={state.comments} 
-      likeCount={state.likeCount}
-      likes={state.likes} 
-      account={state.account} />
+      store={state} />
     </React.StrictMode>
   );
 }
