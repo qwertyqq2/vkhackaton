@@ -57,10 +57,11 @@ func NewHandler(n *Node) handler {
 
 func (h *handler) listen() error {
 	for {
+		//time.Sleep(1 * time.Second)
 		for _, conn := range h.conns {
-			if !conn.Pending && !conn.Wait {
+			if conn.Wait {
+				conn.Wait = false
 				go h.hand(conn)
-				conn.Wait = true
 			}
 		}
 	}
@@ -79,7 +80,12 @@ func (h *handler) send(msgId int, payload []byte) error {
 		default:
 		}
 		for _, conn := range h.conns {
+			fmt.Println(conn.ID, conn.Pending, conn.Wait)
+		}
+		time.Sleep(1 * time.Second)
+		for _, conn := range h.conns {
 			if conn.Pending {
+				conn.Pending = false
 				msg := network.NewMessage(msgId, payload)
 				conn.In <- msg
 				go h.hand(conn)
@@ -89,11 +95,13 @@ func (h *handler) send(msgId int, payload []byte) error {
 	}
 }
 
-func (h *handler) hand(c Conn) error {
+func (h *handler) hand(c *Conn) error {
 	for {
 		select {
 		case msg := <-c.Out:
 			if network.IsNilMessage(msg) {
+				log.Println("rec nil msg")
+				time.Sleep(2 * time.Second)
 				return nil
 			}
 			switch msg.Id {

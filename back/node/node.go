@@ -73,6 +73,7 @@ func (n *Node) Listen() error {
 		log.Println(err)
 		return nil
 	}
+	log.Println("Init node complete")
 	go n.hand.listen()
 	p2p.Listen()
 	//time.Sleep(1 * time.Second)
@@ -95,7 +96,6 @@ func (n *Node) Send(msgid int, data []byte) error {
 		log.Println("failed to query blockchain")
 		return err
 	}
-	time.Sleep(2 * time.Second)
 	log.Println("Sending")
 	if err := n.hand.send(msgid, data); err != nil {
 		log.Println(err)
