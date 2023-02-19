@@ -1,6 +1,6 @@
     git clone https://github.com/qwertyqq2/fbc
 
-### Necessary libraries
+### Run front
 
 Открытие веб-странички
 
