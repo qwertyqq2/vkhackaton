@@ -1,8 +1,8 @@
 // load HTMLs
 const loadHtmlContent = [];
 
-export const loadImages = ["avatar.JPG", "love.png", "more.png", 
-"photo1676760335.jpeg", "testpic2.PNG", "backgr.jpeg"];
+export const loadImages = ["love.png", "more.png", 
+"photo1676760335.jpeg", "backgr.jpeg"];
 
 export let postsCount = 100; // Четыре
 
