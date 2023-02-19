@@ -37,16 +37,19 @@ const (
 )
 
 type Conn struct {
+	ID            string
 	In            chan *Message
 	Out           chan *Message
 	Pending, Wait bool
 }
 
-func NewConn(pend bool) Conn {
-	return Conn{
+func NewConn(pend, wait bool, id string) *Conn {
+	return &Conn{
+		ID:      id,
 		In:      make(chan *Message),
 		Out:     make(chan *Message),
 		Pending: pend,
+		Wait:    wait,
 	}
 }
 
@@ -86,7 +89,7 @@ type node struct {
 	sync.WaitGroup
 }
 
-func NewNode(conf ConfigNode, conns map[string]Conn) P2PNode {
+func NewNode(conf ConfigNode, conns map[string]*Conn) P2PNode {
 	return &node{
 		host:       nil,
 		ConfigNode: conf,
@@ -167,7 +170,7 @@ func (n *node) Init(ctx context.Context) error {
 	if err != nil {
 		return errors.Errorf("creating host p2p multiaddr error")
 	}
-	host.SetStreamHandler(protocol.ID(n.ProtocolID), NewHandler(n.conns).handler(false))
+	host.SetStreamHandler(protocol.ID(n.ProtocolID), NewHandler(n.conns).handler(false, true))
 	kademliaDHT, err := dht.New(
 		ctx,
 		host, dht.Mode(dht.ModeServer),
@@ -189,7 +192,7 @@ func (n *node) Init(ctx context.Context) error {
 }
 
 // добавить освобождение памяти на релеере
-func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, goClose <-chan bool, listener bool) error {
+func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, listener bool) error {
 	var (
 		it           = 0
 		tctx, cancel = context.WithTimeout(ctx, time.Second*120)
@@ -252,83 +255,68 @@ func (n *node) boostrap(ctx context.Context, peerFindChan chan peer.AddrInfo, go
 			return fmt.Errorf("find peers error")
 		}
 		exist := false
-		for peer := range peerChan {
-			if peer.ID == n.host.ID() {
-				continue
-			}
-			for _, p := range findPeer {
-				if p.ID == peer.ID {
-					exist = true
-					break
+		ctx, cancel := context.WithTimeout(context.Background(), 400*time.Second)
+		defer cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case peer := <-peerChan:
+				if peer.ID == n.host.ID() {
+					continue
 				}
+				for _, p := range findPeer {
+					if p.ID == peer.ID {
+						exist = true
+						break
+					}
+				}
+				if exist {
+					continue
+				}
+				peerFindChan <- peer
 			}
-			if exist {
-				continue
-			}
-			peerFindChan <- peer
-		}
-
-		select {
-		case <-goClose:
-			return nil
-		default:
 		}
 	}
 }
 
 func (n *node) Broadcast() error {
 	var (
-		it    = 0
-		close = false
+		it = 0
 
 		peerFindChan = make(chan peer.AddrInfo, 10)
-		goClose      = make(chan bool)
 	)
 	defer n.kadDHT.RoutingTable().Close()
-	log.Println("Boostrap go")
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(600*time.Second))
-	defer cancel()
-	go n.boostrap(context.Background(), peerFindChan, goClose, false)
-	for !close {
+	go n.boostrap(context.Background(), peerFindChan, false)
+	for it < EnoughPeers {
 		select {
-		case <-ctx.Done():
-			close = true
 		case peer := <-peerFindChan:
+			time.Sleep(1 * time.Second)
 			if _, ok := n.streams[peer.ID]; ok {
 				break
 			}
 			n.streams[peer.ID] = true
-			go func() {
-				defer delete(n.streams, peer.ID)
-				//log.Println("Connecting to:", peer.ID)
-				stream, err := n.host.NewStream(network.WithUseTransient(context.Background(),
-					n.ProtocolID), peer.ID, protocol.ID(n.ProtocolID))
-				if err != nil {
-					//log.Println("err conn: ", err)
-					return
-				} else {
-					log.Println("connection established with anouther peer!")
-					it++
-					log.Println("Stream here")
-					time.Sleep(1 * time.Second)
-					NewHandler(n.conns).run(stream)
-				}
-			}()
-			if it >= EnoughPeers {
-				goClose <- true
-				close = true
+			stream, err := n.host.NewStream(network.WithUseTransient(context.Background(),
+				n.ProtocolID), peer.ID, protocol.ID(n.ProtocolID))
+			if err != nil {
+				break
 			}
+			log.Println("connection established with anouther peer!")
+			time.Sleep(1 * time.Second)
+			go NewHandler(n.conns).run(stream)
+			it++
 		}
 	}
+	log.Println("Exit")
+
 	return nil
 }
 
 func (n *node) Listen() error {
 	var (
 		peerFindChan = make(chan peer.AddrInfo, 10)
-		goClose      = make(chan bool)
 	)
-	go n.boostrap(context.Background(), peerFindChan, goClose, true)
+	go n.boostrap(context.Background(), peerFindChan, true)
 	ctx, cancel := context.WithTimeout(context.Background(), 7200*time.Second)
 	defer cancel()
 	for {

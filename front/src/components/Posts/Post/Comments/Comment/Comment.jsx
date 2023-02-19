@@ -1,11 +1,12 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import s from './Comment.module.css';
 
 const Comment = (props) => {
     return (
         <div className={s.comment}>
             <div className={s.commentatorImg}>
-                <img src='avatar.jpg' alt='' />
+                <NavLink to="/Profile"><img src='mommymonkey.jpeg' alt='' /></NavLink>
             </div>
             <div className={s.commentatorText}>
                 <p>

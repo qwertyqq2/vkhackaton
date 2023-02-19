@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
 
 	"github.com/qwertyqq2/filebc/core/types"
 	"github.com/qwertyqq2/filebc/core/types/transaction"
@@ -27,28 +26,6 @@ func GetLastState(h, s values.Bytes, n uint64) lastState {
 		lastSnap:   s,
 		lastNumber: n,
 	}
-}
-
-func (bc *Blockchain) AddBlock(u *user.User, txs ...types.Transaction) (*types.Block, error) {
-	validator := newValidator(bc.coll)
-	snap, err := bc.coll.Snap()
-	if err != nil {
-		return nil, err
-	}
-
-	snap, err = validator.add(snap, txs...)
-	if err != nil {
-		return nil, err
-	}
-
-	block := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.lastSnap, u.Addr, txs...)
-	if err := block.Accept(u); err != nil {
-		return nil, err
-	}
-	block.CurShap = snap
-
-	block.Time = time.Now().Format(time.RFC3339)
-	return block, nil
 }
 
 func AddBlock(u *user.User, ls lastState, txs ...types.Transaction) (*types.Block, error) {

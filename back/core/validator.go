@@ -15,7 +15,7 @@ import (
 const (
 	MinPostSize     = 100
 	MaxPostSize     = 10000
-	MinTokenReserve = 50
+	MinTokenReserve = 0
 	Fees            = 10
 )
 
@@ -52,17 +52,16 @@ func (validator *validator) add(state values.Bytes, txs ...types.Transaction) (v
 		}
 		switch tx.GetType() {
 		case transaction.TypePostTx:
-			if !validator.validPostSize(tx.GetData()) {
-				return nil, fmt.Errorf("invalid size post")
-			}
-			if !validator.validMinReserveForPost(tx.GetSender()) {
-				return nil, fmt.Errorf("not enough tokens for post")
-			}
+			// if !validator.validPostSize(tx.GetData()) {
+			// 	return nil, fmt.Errorf("invalid size post")
+			// }
+			// if !validator.validMinReserveForPost(tx.GetSender()) {
+			// 	return nil, fmt.Errorf("not enough tokens for post")
+			// }
 			file := files.NewFile(string(tx.GetData()))
 			state = validator.seed.AddFile(state, file)
 
 		case transaction.TypeTransferTx:
-
 			if val, ok := validator.v[tx.GetSender()]; ok {
 				balSender = binary.BigEndian.Uint64(val)
 				send, err := user.ParseAddress(tx.GetSender())

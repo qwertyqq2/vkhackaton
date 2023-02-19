@@ -7,7 +7,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 
   /* background-color: #EDEEF0; */
+<<<<<<< HEAD
   background-image: url("../public/backgr2.jpeg");
+=======
+  background-image: url("../public/background3.jpg");
+>>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
 }
 
 code {

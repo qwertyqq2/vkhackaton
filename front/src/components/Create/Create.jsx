@@ -68,12 +68,12 @@ const Create = () => {
         <div className={s.createPost}>
             <form onSubmit={handleSubmit}>
                 <div className={s.postName}>
-                    <label for="name">Name:</label><br />
+                    <label for="name">Title</label><br />
                     <input type="text" id="name" name="name" onChange={handleInputChange} /><br />
                 </div>
 
                 <div className={s.postContent}>
-                    <label for="message">Message:</label><br />
+                    <label for="message">Content</label><br />
                     <textarea id="message" name="message" onChange={handleInputChange} ></textarea><br />
                 </div>
 
