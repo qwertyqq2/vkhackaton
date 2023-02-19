@@ -7,5 +7,5 @@
 
 ### Run back
 
-    cd back
+    cd ./back
     go run .
