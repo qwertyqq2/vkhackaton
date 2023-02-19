@@ -51,11 +51,12 @@
 
 .arrow {
     flex: 2;
-    padding: 2px;
+    /* padding-left: 30%; */
     /* grid-area: r; */
-}
+} 
 
 .arrow img {
+    margin-top: 7px;
     width: 30px;
     height: 30px;
     cursor: pointer;

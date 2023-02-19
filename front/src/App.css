@@ -5,11 +5,11 @@
 
   grid-template-areas:
     "h h h"
-    "n c s"
+    "c n s"
     "f f f";
 
   grid-template-rows: 60px 1fr 1fr;
-  grid-template-columns: 4fr 7fr 4fr;
+  grid-template-columns: 8fr 1fr 8fr;
   grid-gap: 10px;
 }
 

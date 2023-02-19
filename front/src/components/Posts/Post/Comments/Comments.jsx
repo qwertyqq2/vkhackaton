@@ -16,7 +16,7 @@ const Comments = (props) => {
     let newCommentElem = React.createRef();
 
     let addComm = () => {
-        console.log("It works");
+        // console.log("It works");
         addComment({ postId: props.postId, id: 4, message: newCommentElem.current.value });
     };
 
@@ -77,16 +77,16 @@ const Comments = (props) => {
             </div>
             <div className={s.hl} />
 
-                <form onSubmit={handleSubmit} className={s.createComment}>
-                    <div className={s.textArea}>
-                        <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
-                    </div>
+            <form onSubmit={handleSubmit} className={s.createComment}>
+                <div className={s.textArea}>
+                    <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
+                </div>
 
-                    <div className={s.arrow}>
-                        <img src='right-arrow.png' alt='' onClick={addComm} />
-                        {/* <input type="submit" value="Submit" onClick={addComm} /> */}
-                    </div>
-                </form>
+                <div className={s.arrow}>
+                    <img src='right-arrow.png' alt='' onClick={addComm} />
+                    {/* <input type="submit" value="Submit" onClick={addComm} /> */}
+                </div>
+            </form>
 
         </div>
     );

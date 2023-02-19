@@ -7,7 +7,7 @@ const Profile = (props) => {
         <div className={classes.profile}>
             <div className={classes.avatar}>
                 <div className={classes.avatarImg}>
-                    <img src='avatar.jpg' alt='' />
+                    <img src='mommymonkey.jpeg' alt='' />
                 </div>
                 <div className={classes.avatarDesc}>
                     <ul>
@@ -34,9 +34,6 @@ const Profile = (props) => {
                     означает, что в каждом разговоре, будут использоваться два разных сервера по одному для каждого
                     направления сообщений.
                 </p>
-            </div>
-            <div className={classes.sidePosts}>
-                {/* <Posts htmlContent={props.htmlContent}/> */}
             </div>
         </div>
     );
