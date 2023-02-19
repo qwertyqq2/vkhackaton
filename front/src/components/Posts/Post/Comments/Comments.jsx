@@ -16,21 +16,13 @@ const Comments = (props) => {
     let newCommentElem = React.createRef();
 
     let addComm = () => {
-<<<<<<< HEAD
-        console.log("It works");
-=======
         // console.log("It works");
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
         addComment({ postId: props.postId, id: 4, message: newCommentElem.current.value });
     };
 
     let onCommentChange = () => {
         let text = newCommentElem.current.value;
-<<<<<<< HEAD
-        console.log(text);
-=======
         // console.log(text);
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
     }
 
     //to back
@@ -44,15 +36,9 @@ const Comments = (props) => {
         event.preventDefault();
         // do something with the input value
         const form = document.querySelector('form');
-<<<<<<< HEAD
-
-        console.log("1");
-
-=======
 
         // console.log("1");
 
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
         form.addEventListener('submit', (event) => {
             event.preventDefault();
 
@@ -68,15 +54,6 @@ const Comments = (props) => {
                 },
                 body: JSON.stringify(data)
             })
-<<<<<<< HEAD
-                .then(response => {
-                    if (response.ok) {
-                        // handle the response from the Go backend here
-                    } else {
-                        throw new Error('Network response was not ok');
-                    }
-                })
-=======
                 // .then(response => {
                 //     if (response.ok) {
                 //         // handle the response from the Go backend here
@@ -84,7 +61,6 @@ const Comments = (props) => {
                 //         throw new Error('Network response was not ok');
                 //     }
                 // })
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
                 .catch(error => {
                     console.error('Error:', error);
                 });
@@ -99,31 +75,6 @@ const Comments = (props) => {
                     <Comment comments={elem} />
                 )}
             </div>
-<<<<<<< HEAD
-            <div className={s.createComment}>
-<<<<<<< HEAD
-                <form onSubmit ={handleSubmit}>
-                    <div className={s.textArea}>
-                        <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
-                    </div>
-                <div className={s.arrow}>
-                    {/* <img src='right-arrow.png' alt='' onClick={handleSubmit} /> */}
-                    <input type = "submit" value="Submit" onClick={handleInputChange}/>
-                </div>
-=======
-                <form onSubmit={handleSubmit}>
-                    <div className={s.textArea}>
-                        <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
-                    </div>
-
-                    <div className={s.arrow}>
-                        <img src='right-arrow.png' alt='' onClick={addComm} />
-                        {/* <input type="submit" value="Submit" onClick={addComm} /> */}
-                    </div>
->>>>>>> refs/remotes/origin/main
-                </form>
-            </div>
-=======
             <div className={s.hl} />
 
             <form onSubmit={handleSubmit} className={s.createComment}>
@@ -137,7 +88,6 @@ const Comments = (props) => {
                 </div>
             </form>
 
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
         </div>
     );
 }

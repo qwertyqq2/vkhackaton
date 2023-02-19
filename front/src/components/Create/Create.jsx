@@ -26,16 +26,16 @@ const Create = () => {
             const message = form.elements['message'].value;
             const interests = [];
 
-            const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach((checkbox) => {
-                if (checkbox.checked) {
-                    interests.push(checkbox.value);
-                }
-            });
+            // const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+            // checkboxes.forEach((checkbox) => {
+            //     if (checkbox.checked) {
+            //         interests.push(checkbox.value);
+            //     }
+            // });
             const data = {
                 name: name,
-                message: message,
-                interests: interests
+                message: message
+                // interests: interests
             };
             debugger;
             fetch('http://localhost:3001/create_post', {
@@ -77,7 +77,7 @@ const Create = () => {
                     <textarea id="message" name="message" onChange={handleInputChange} ></textarea><br />
                 </div>
 
-                <div className={s.hz}>
+                {/* <div className={s.hz}>
                     <label for="interests">Interests:</label>
                     <ul>
                         <li>
@@ -93,10 +93,10 @@ const Create = () => {
                             <label for="Economics">Economics</label><br />
                         </li>
                     </ul>
-                </div>
+                </div> */}
 
                 <div className={s.submit}>
-                    <input type="submit" value="Submit" onChange={handleInputChange} />
+                    <button type="submit" value="Submit" onChange={handleInputChange}>Submit</button>
                 </div>
             </form>
         </div>

@@ -45,10 +45,10 @@ const PrePost = (props) => {
             <div className={s.buttons}>
                 <div className={s.likeButton} onClick={handleLikeClick}>
                     {!props.likes.likePressed ? (
-                        <img src='like.png' alt='' />
+                        <img src='heart_dis.png' alt='' />
                     ) :
                         (
-                            <img src='like_active.png' alt='' />
+                            <img src='heart.png' alt='' />
                         )}
                 </div>
                 <div className={s.likes}>

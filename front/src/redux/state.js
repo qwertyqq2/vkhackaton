@@ -1,21 +1,7 @@
 // load HTMLs
 const loadHtmlContent = [];
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-for (let i = 1; i <= 3; i++) {
-  // eslint-disable-next-line
-  let htmlModule = require(`raw-loader!../data/htmlExample` + i + `.html`);
-  let html = htmlModule.default;
 
-  loadHtmlContent.push(html);
-}
-=======
-
->>>>>>> refs/remotes/origin/main
-=======
-
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
 //
 export let postsCount = 100; // Четыре
 
@@ -51,15 +37,9 @@ let rerenderEntireTree = () => { };
 
 export let addPost = () => {
   let newPost = {
-<<<<<<< HEAD
 
   };
 
-=======
-
-  };
-
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
   rerenderEntireTree(state);
 };
 

@@ -26,13 +26,8 @@
     padding-top: 5%;
 
     display: flex;
-<<<<<<< HEAD
-    grid-template-areas:
-        "l r";
-=======
     /* grid-template-areas:
         "l r"; */
->>>>>>> c9e4d4e02ae8cc9163044fa9830434ff55c3f139
 
     /* padding-top: 10px; */
 }
