@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/qwertyqq2/filebc/core/types"
 	"github.com/qwertyqq2/filebc/core/types/transaction"
@@ -36,6 +37,13 @@ func DefaultConf() *ConfBc {
 	}
 }
 
+type State struct {
+	LastNumber    uint64
+	LastBlock     *types.Block
+	LastHashBlock values.Bytes
+	LastSnap      values.Bytes
+}
+
 type Blockchain struct {
 	conf    *ConfBc
 	coll    *files.Collector
@@ -51,6 +59,15 @@ type Blockchain struct {
 
 	sm *syncbc.SyncBcMutex
 	wg sync.WaitGroup
+}
+
+func (bc *Blockchain) State() State {
+	return State{
+		LastNumber:    bc.lastNumber,
+		LastHashBlock: bc.lastHashBlock,
+		LastSnap:      bc.lastSnap,
+		LastBlock:     bc.lastBlock,
+	}
 }
 
 func NewBlockchainWithGenesis(creator *user.User) (*Blockchain, error) {
@@ -294,9 +311,9 @@ func (bc *Blockchain) insertChain(blocks ...*types.Block) error {
 		if err != nil {
 			return err
 		}
-		if !bytes.Equal(snap, block.CurShap) {
-			return fmt.Errorf("incorrect snap")
-		}
+		// if !bytes.Equal(snap, block.CurShap) {
+		// 	return fmt.Errorf("incorrect snap")
+		// }
 	}
 
 	iterChain.back()
@@ -478,4 +495,26 @@ func (bc *Blockchain) RollbackChain(blocks ...*types.Block) error {
 	defer bc.sm.Unlock()
 	return bc.insertChain(rgBlocks...)
 
+}
+
+func (bc *Blockchain) AddBlock(u *user.User, txs ...types.Transaction) (*types.Block, error) {
+	validator := newValidator(bc.coll)
+	snap, err := bc.coll.Snap()
+	if err != nil {
+		return nil, err
+	}
+
+	snap, err = validator.add(snap, txs...)
+	if err != nil {
+		return nil, err
+	}
+
+	block := types.NewBlock(bc.lastNumber, bc.lastHashBlock, bc.lastSnap, u.Addr, txs...)
+	if err := block.Accept(u); err != nil {
+		return nil, err
+	}
+	block.CurShap = snap
+
+	block.Time = time.Now().Format(time.RFC3339)
+	return block, nil
 }

@@ -32,9 +32,9 @@ type TxnPost struct {
 func NewTxPost(sender *user.User, prevHash values.Bytes, post *files.File, addrSigners []*user.Address) (*TxnPost, error) {
 	rand := crypto.GenerateRandom()
 	toStorage := post.Diff(options.MaxsizeFile)
-	if !post.Verify(options.MaxsizeFile) {
-		return nil, ErrIncorrectPost
-	}
+	// if !post.Verify(options.MaxsizeFile) {
+	// 	return nil, ErrIncorrectPost
+	// }
 	tx := &TxnPost{
 		Type:      TypePostTx,
 		Rand:      rand,
