@@ -15,7 +15,7 @@ function App(props) {
         <Header />
         <div className='app-wrapper-content'>
           <Routes>
-            <Route path='/' element={<Posts
+            <Route path='*' element={<Posts
               htmlContent={props.store.getHtmlContent}
               comments={props.store.comments}
               likes={props.store.likes} />} />
