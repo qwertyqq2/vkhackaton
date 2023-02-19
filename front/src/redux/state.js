@@ -1,8 +1,9 @@
 // load HTMLs
 const loadHtmlContent = [];
 
+export const loadImages = ["avatar.JPG", "love.png", "more.png", 
+"photo1676760335.jpeg", "testpic2.PNG", "backgr.jpeg"];
 
-//
 export let postsCount = 100; // Четыре
 
 let state = {
@@ -29,19 +30,11 @@ for (let i = 1; i <= postsCount; i++) {
   loadHtmlContent.push(html);
   state.likes.push({ likePressed: false, count: 0 });
   } catch (error) {
-    break;
+    continue;
   }
 }
 
 let rerenderEntireTree = () => { };
-
-export let addPost = () => {
-  let newPost = {
-
-  };
-
-  rerenderEntireTree(state);
-};
 
 export let addComment = (params) => {
   state.comments.push({ bindPostId: params.postId, id: params.id, message: params.message });

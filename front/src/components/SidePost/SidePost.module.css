@@ -1,0 +1,23 @@
+.post {
+    background-color: white;
+    padding: 10px;
+    margin: 20px;
+    border-radius: 15px;
+}
+
+.title p {
+    /* font-size: 24px; */
+    text-align: center;
+    font-size: xx-large;
+}
+
+.pict {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-gap: 1rem;
+}
+
+.item {
+    margin: 0.5rem;
+    max-width: 100%;
+}
