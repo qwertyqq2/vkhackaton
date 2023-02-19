@@ -5,6 +5,13 @@ import (
 	"log"
 	"os"
 
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/kardianos/service"
 	"github.com/qwertyqq2/filebc/core"
 	"github.com/qwertyqq2/filebc/core/types"
 	"github.com/qwertyqq2/filebc/core/types/transaction"
@@ -12,7 +19,66 @@ import (
 	"github.com/qwertyqq2/filebc/files"
 	"github.com/qwertyqq2/filebc/user"
 	"github.com/qwertyqq2/filebc/values"
+	"github.com/rs/cors"
 )
+
+var (
+	serviceIsRunning bool
+	programIsRunning bool
+	writingSync      sync.Mutex
+)
+
+var n *node
+
+const serviceName = "Medium service"
+const serviceDescription = "Simple service, just for fun"
+
+type program struct{}
+
+func (p program) Start(s service.Service) error {
+	fmt.Println(s.String() + " started")
+	writingSync.Lock()
+	serviceIsRunning = true
+	writingSync.Unlock()
+	go p.run()
+	return nil
+}
+
+func (p program) Stop(s service.Service) error {
+	writingSync.Lock()
+	serviceIsRunning = false
+	writingSync.Unlock()
+	for programIsRunning {
+		fmt.Println(s.String() + " stopping...")
+		time.Sleep(1 * time.Second)
+	}
+	fmt.Println(s.String() + " stopped")
+	return nil
+}
+
+func (p program) run() {
+	router := httprouter.New()
+	handler := cors.Default().Handler(router)
+	//timer := sse.New()
+	//router.ServeFiles("/js/*filepath", http.Dir("js"))
+	//router.ServeFiles("/css/*filepath", http.Dir("css"))
+	router.GET("/", serveHomepage)
+
+	// router.POST("/get_time", getTime)
+	router.POST("/create_post", createPost) // создать пост
+
+	//router.POST("/post_comment", createComment) // создать коммент
+	//router.GET("/get_new_post", getRecentPost) // получить новый пост
+	//router.PATCH("/update_likes", updateLikes) // обновить счетчик лайков
+	//router.Handler("GET", "/time", timer)
+
+	//go streamTime(timer)
+	err := http.ListenAndServe(":3001", handler)
+	if err != nil {
+		fmt.Println("Problem starting web server: " + err.Error())
+		os.Exit(-1)
+	}
+}
 
 type node struct {
 	user *user.User
@@ -139,7 +205,7 @@ func postTxs(prevHash values.Bytes, u *user.User) ([]types.Transaction, error) {
 	return txs, nil
 }
 
-//Пример взятия постов из ноды
+// Пример взятия постов из ноды
 func ExampleGet(n *node) {
 	fs, err := n.Get()
 	if err != nil {
@@ -152,7 +218,7 @@ func ExampleGet(n *node) {
 	}
 }
 
-//Пример записи поста в ноду
+// Пример записи поста в ноду
 func ExampleSet(n *node, post string) {
 	if err := n.Set(post); err != nil {
 		log.Fatal(err)
@@ -165,8 +231,42 @@ func main() {
 		log.Fatal(err)
 	}
 
-	post := ".................some................"
-	ExampleSet(n, post)
-	ExampleGet(n)
+	// post := ".................some................"
+	// ExampleSet(n, post)
+	// ExampleGet(n)
+
+	fs, err := n.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var i = 1
+	for _, f := range fs {
+		if i < 4 {
+			i++
+			continue
+		}
+		file, err := os.Create("../front/src/data/htmlExample" + strconv.Itoa(i-3) + ".html")
+		if err != nil {
+			fmt.Println("Error creating file:", err)
+			return
+		}
+		_, err = file.WriteString(f)
+		file.Close()
+		i++
+	}
+	serviceConfig := &service.Config{
+		Name:        serviceName,
+		DisplayName: serviceName,
+		Description: serviceDescription,
+	}
+	prg := &program{}
+	s, err := service.New(prg, serviceConfig)
+	if err != nil {
+		fmt.Println("Cannot create the service: " + err.Error())
+	}
+	err = s.Run()
+	if err != nil {
+		fmt.Println("Cannot start the service: " + err.Error())
+	}
 	return
 }
