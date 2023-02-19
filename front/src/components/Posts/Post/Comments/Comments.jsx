@@ -33,7 +33,6 @@ const Comments = (props) => {
     };
 
     const handleSubmit = (event) => {
-        addComm();
         event.preventDefault();
         // do something with the input value
         const form = document.querySelector('form');
@@ -77,6 +76,7 @@ const Comments = (props) => {
                 )}
             </div>
             <div className={s.createComment}>
+<<<<<<< HEAD
                 <form onSubmit ={handleSubmit}>
                     <div className={s.textArea}>
                         <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
@@ -85,6 +85,17 @@ const Comments = (props) => {
                     {/* <img src='right-arrow.png' alt='' onClick={handleSubmit} /> */}
                     <input type = "submit" value="Submit" onClick={handleInputChange}/>
                 </div>
+=======
+                <form onSubmit={handleSubmit}>
+                    <div className={s.textArea}>
+                        <textarea id="message" onChange={onCommentChange} ref={newCommentElem} ></textarea>
+                    </div>
+
+                    <div className={s.arrow}>
+                        <img src='right-arrow.png' alt='' onClick={addComm} />
+                        {/* <input type="submit" value="Submit" onClick={addComm} /> */}
+                    </div>
+>>>>>>> refs/remotes/origin/main
                 </form>
             </div>
         </div>

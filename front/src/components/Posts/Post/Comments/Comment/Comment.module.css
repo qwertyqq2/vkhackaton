@@ -17,7 +17,7 @@
 
 .commentatorText {
     grid-area: r;
-    margin: 5px;
-    padding-left: 5%;
+    /* margin: 5px;
+    padding-left: 5%; */
     /* border: 1px solid grey; */
 }
