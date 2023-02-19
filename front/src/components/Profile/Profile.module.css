@@ -1,0 +1,55 @@
+.profile {
+    padding-top: 15px;
+    margin-left: 300px;
+    width: 600px;
+
+    display: grid;
+    grid-template-areas:
+        "c c"
+        "d d";
+
+    /* grid-template-rows: 6fr 2fr;
+    grid-template-columns: 3fr 7fr; */
+    /* grid-gap: 10px; */
+}
+
+.avatar {
+    grid-area: c;
+    display: grid;
+    grid-template-areas:
+        "l r";
+
+    background-color: white;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 1%;
+}
+
+.avatar img {
+    border-radius: 1%;
+    width: 200px;
+    height: 200px;
+    /* margin-left: 30%; */
+}
+
+.avatar .avatarImg {
+    grid-area: l;
+}
+
+.avatar .avatarDesc {
+    grid-area: r;
+    
+}
+
+.avatar .avatarDesc li {
+    list-style-type: none;
+}
+
+.description {
+    grid-area: d;
+    padding-top: 15px;
+    background-color: white;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 1%;
+}

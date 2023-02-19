@@ -1,0 +1,22 @@
+.app-wrapper {
+  margin: 0 auto;
+  display: grid;
+  width: 1200px;
+
+  grid-template-areas:
+    "h h h"
+    "c n s"
+    "f f f";
+
+  grid-template-rows: 60px 1fr 1fr;
+  grid-template-columns: 8fr 1fr 8fr;
+  grid-gap: 10px;
+}
+
+.app-wrapper-content {
+  grid-area: c;
+}
+
+.app-wrapper-s {
+  grid-area: s;
+}
